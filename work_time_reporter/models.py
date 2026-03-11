@@ -20,6 +20,22 @@ class Project(models.Model):  # a year contract by the matter of fact
     year = models.IntegerField(default=timezone.now().year)
     is_active = models.BooleanField(default=True)
 
+    # 1. Manager of the project (Owner)
+    manager = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='managed_projects',
+        verbose_name="Project Manager"
+    )
+    # 2. Team of the project (Users who have access to project)
+    members = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        blank=True,
+        related_name='assigned_projects',
+        verbose_name="Team Members"
+    )
+
     def __str__(self):
         return f"{self.name} ({self.year})"
 
@@ -33,6 +49,13 @@ class Task(models.Model):
     title = models.CharField(max_length=255, verbose_name="Task Title")
     # Deleting a project leads to deleting all its tasks - (CASCADE)
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='tasks')
+    # users who work with the task
+    assignees = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        blank=True,
+        related_name='assigned_tasks',
+        verbose_name="Assigned Engineers"
+    )
 
     # Task budget in hours
     budget_hours = models.PositiveIntegerField(help_text="Allocated budget in hours")
