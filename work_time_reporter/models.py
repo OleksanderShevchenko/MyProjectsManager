@@ -4,7 +4,7 @@ from django.utils import timezone
 from datetime import date
 
 
-class Project(models.Model):
+class Project(models.Model):  # a year contract by the matter of fact
     class ProjectType(models.TextChoices):
         COMMERCIAL = 'COMMERCIAL', 'Commercial'
         INTERNAL = 'INTERNAL', 'Internal / Pet Project'
@@ -16,7 +16,7 @@ class Project(models.Model):
         choices=ProjectType.choices,
         default=ProjectType.COMMERCIAL
     )
-    # Зберігаємо рік контракту. За замовчуванням беремо поточний рік.
+    # Store year of the contract. By default, it is current year
     year = models.IntegerField(default=timezone.now().year)
     is_active = models.BooleanField(default=True)
 
@@ -31,18 +31,18 @@ class Task(models.Model):
         DONE = 'DONE', 'Done'
 
     title = models.CharField(max_length=255, verbose_name="Task Title")
-    # Якщо видалити проєкт, всі його таски теж видаляться (CASCADE)
+    # Deleting a project leads to deleting all its tasks - (CASCADE)
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='tasks')
 
-    # Бюджет у цілих годинах
+    # Task budget in hours
     budget_hours = models.PositiveIntegerField(help_text="Allocated budget in hours")
 
-    # Дедлайн (опційне поле)
+    # Deadline (optional) - if not set use end of the year
     deadline = models.DateField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.NOT_SUBMITTED)
 
     def save(self, *args, **kwargs):
-        # Магія: якщо дедлайн не вказано, ставимо 31 грудня поточного року
+        # 'Magic': if deadline has not been set - set it to last day of the year
         if not self.deadline:
             current_year = timezone.now().year
             self.deadline = date(current_year, 12, 31)
@@ -54,11 +54,11 @@ class Task(models.Model):
 
 class TimeLog(models.Model):
     task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name='time_logs')
-    # Зв'язуємо з нашою кастомною моделлю користувача
+    # Connect time reporting with a user
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='time_logs')
 
     date = models.DateField(default=timezone.now)
-    # Дозволяє списувати дробові години (напр. 1.5 години = 1 год 30 хв)
+    # Allow fractional time reporting (like. 1.5 hours = 1 hour 30 min)
     hours = models.DecimalField(max_digits=5, decimal_places=2)
     comment = models.TextField(blank=True, help_text="What was done?")
 
