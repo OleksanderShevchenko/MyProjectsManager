@@ -40,6 +40,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    # first local app
+    'users'
 ]
 
 MIDDLEWARE = [
@@ -122,3 +125,6 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+
+# use our custom user model instead of standard (will be asier to modify and extend it in future)
+AUTH_USER_MODEL = 'users.CustomUser'
