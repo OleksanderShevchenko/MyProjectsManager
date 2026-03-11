@@ -1,1 +1,19 @@
-/.venv/
+# Віртуальне середовище
+.venv/
+env/
+venv/
+.idea/
+
+# Файли Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Секретні файли (дуже важливо!)
+.env
+
+# База даних (якщо буде локальна SQLite)
+db.sqlite3
+
+# Налаштування PyCharm
+.idea/

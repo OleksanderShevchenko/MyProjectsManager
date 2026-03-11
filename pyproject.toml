@@ -3,4 +3,8 @@ name = "myprojectsmanager"
 version = "0.1.0"
 description = "Add your description here"
 requires-python = ">=3.14"
-dependencies = []
+dependencies = [
+    "django>=6.0",
+    "psycopg>=3.3.3",
+    "python-dotenv>=1.2.2",
+]
