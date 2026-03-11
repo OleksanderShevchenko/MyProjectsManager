@@ -42,7 +42,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     # first local app
-    'users'
+    'users',
+    'work_time_reporter',
 ]
 
 MIDDLEWARE = [
