@@ -19,29 +19,33 @@ An open-source project and time management tool designed to track work hours, ma
 To run this project locally, you will need Python 3.14+, `uv`, and Docker installed on your machine.
 
 ### 1. Clone the repository
-\`\`\`bash
+```bash
 git clone https://github.com/OleksanderShevchenko/MyProjectsManager.git
 cd MyProjectsManager
-\`\`\`
+```
 
 ### 2. Set up the environment and install dependencies
 This project uses `uv` for lightning-fast dependency management.
-\`\`\`bash
+```bash
 uv sync
-\`\`\`
+```
 
 ### 3. Start the Database
+Copy the example environment file and update the variables if necessary:
+```bash
+cp .env.example .env
+```
+
 We use Docker to run PostgreSQL locally.
-\`\`\`bash
-# (Note: docker-compose.yml is coming soon!)
+```bash
 docker-compose up -d
-\`\`\`
+```
 
 ### 4. Apply Migrations and Run the Server
-\`\`\`bash
+```bash
 uv run python manage.py migrate
 uv run python manage.py runserver
-\`\`\`
+```
 
 ## 🤝 Contributing
 Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/OleksanderShevchenko/MyProjectsManager/issues).
