@@ -1,0 +1,15 @@
+/* Browsers ignore the normal background-color for selected <option>s.
+So we use the linear-gradient hack!
+*/
+.selector select option:checked {
+    background-color: #1d3557 !important;
+    background: linear-gradient(#1d3557, #1d3557) !important;
+    color: #ffffff !important;
+}
+
+/* Adding hover for a better experience */
+/* Make the font a little bolder for better readability */
+.selector select option {
+    padding: 4px !important;
+    font-weight: 500 !important;
+}

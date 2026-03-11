@@ -12,6 +12,11 @@ class ProjectAdmin(admin.ModelAdmin):
     # add convenient interface for selecting user
     filter_horizontal = ('members',)
 
+    class Media:
+        css = {
+            'all': ('admin/custom_admin.css',)  # The path starts from the 'static' folder
+        }
+
 @admin.register(Task)
 class TaskAdmin(admin.ModelAdmin):
     list_display = ('title', 'project', 'budget_hours', 'deadline', 'status')
@@ -19,6 +24,11 @@ class TaskAdmin(admin.ModelAdmin):
     search_fields = ('title',)
     # add convenient interface for selecting user
     filter_horizontal = ('assignees',)
+
+    class Media:
+        css = {
+            'all': ('admin/custom_admin.css',)  # The path starts from the 'static' folder
+        }
 
 @admin.register(TimeLog)
 class TimeLogAdmin(admin.ModelAdmin):
