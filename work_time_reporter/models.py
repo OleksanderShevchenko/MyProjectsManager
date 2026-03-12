@@ -75,7 +75,30 @@ class Task(models.Model):
         return self.title
 
 
+class WeeklyTimesheet(models.Model):
+    class Status(models.TextChoices):
+        DRAFT = 'DRAFT', 'Draft'
+        SUBMITTED = 'SUBMITTED', 'Submitted for Approval'
+        APPROVED = 'APPROVED', 'Approved'
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='timesheets')
+    year = models.IntegerField()
+    week_number = models.IntegerField() # Номер тижня від 1 до 52/53
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
+
+    class Meta:
+        # У одного користувача може бути лише один звіт на конкретний тиждень року
+        unique_together = ('user', 'year', 'week_number')
+
+    def __str__(self):
+        return f"{self.user} - {self.year} Week {self.week_number} ({self.status})"
+
+
 class TimeLog(models.Model):
+    # Added link to weekly report (null=True temporarily so as not to break your existing test data)
+    timesheet = models.ForeignKey(WeeklyTimesheet, on_delete=models.CASCADE, related_name='time_logs', null=True,
+                                  blank=True)
+
     task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name='time_logs')
     # Connect time reporting with a user
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='time_logs')
@@ -84,6 +107,12 @@ class TimeLog(models.Model):
     # Allow fractional time reporting (like. 1.5 hours = 1 hour 30 min)
     hours = models.DecimalField(max_digits=5, decimal_places=2)
     comment = models.TextField(blank=True, help_text="What was done?")
+
+    class Meta:
+        # IRON RULE: One cell in the grid = one record in the database
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'task', 'date'], name='unique_user_task_date')
+        ]
 
     def __str__(self):
         return f"{self.user} - {self.task.title} ({self.hours}h)"
