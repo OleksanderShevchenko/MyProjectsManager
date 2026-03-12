@@ -1,5 +1,36 @@
 from django.contrib import admin
-from .models import Project, Task, TimeLog
+from .models import Project, Task, TimeLog, WeeklyTimesheet
+
+
+# Allows you to see and edit logs directly inside the weekly report
+class TimeLogInline(admin.TabularInline):
+    model = TimeLog
+    extra = 1  # Number of empty lines for new entries
+    fields = ('task', 'date', 'hours', 'comment')
+
+
+@admin.register(WeeklyTimesheet)
+class WeeklyTimesheetAdmin(admin.ModelAdmin):
+    list_display = ('user', 'year', 'week_number', 'status')
+    list_filter = ('status', 'year', 'user')
+    search_fields = ('user__username', 'week_number')
+    inlines = [TimeLogInline]
+
+    def save_formset(self, request, form, formset, change):
+        instances = formset.save(commit=False)
+        for instance in instances:
+            # If we save TimeLog from inline form
+            if isinstance(instance, TimeLog):
+                # Automatically assign it the same user as in the weekly report itself
+                instance.user = form.instance.user
+            instance.save()
+
+        # Handle row deletion (if you click the "Delete" checkbox)
+        for obj in formset.deleted_objects:
+            obj.delete()
+
+        formset.save_m2m()
+
 
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
