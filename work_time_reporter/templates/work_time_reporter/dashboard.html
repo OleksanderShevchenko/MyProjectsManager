@@ -50,7 +50,7 @@
             <tbody class="bg-white divide-y divide-gray-200">
 
                 {% for row in grid_data %}
-                <tr class="hover:bg-gray-50 transition-colors">
+                <tr class="hover:bg-gray-50 transition-colors task-row">
                     <td class="px-6 py-4">
                         <div class="text-sm font-bold text-gray-900">{{ row.task.project.name }}</div>
                         <div class="text-sm text-gray-500">{{ row.task.title }}</div>
@@ -82,6 +82,20 @@
                     </td>
                 </tr>
                 {% endfor %}
+
+                <tr class="bg-gray-100 border-t-2 border-gray-300 font-bold text-gray-700">
+                    <td class="px-6 py-4 text-right uppercase text-xs tracking-wider">
+                        Daily Totals:
+                    </td>
+                    {% for date in week_dates %}
+                    <td class="px-2 py-4 text-center daily-total text-sm">
+                        0.0
+                    </td>
+                    {% endfor %}
+                    <td class="px-4 py-4 text-center text-indigo-700 text-lg" id="table-grand-total">
+                        0.0
+                    </td>
+                </tr>
 
             </tbody>
         </table>
@@ -120,15 +134,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function updateTotals() {
         let weeklyTotal = 0;
-        const rows = document.querySelectorAll('tbody tr');
+        let dailyTotals = [0, 0, 0, 0, 0, 0, 0]; // Array for 7 days of the week
+
+        // We are looking only for rows with tasks (ignore the row with totals)
+        const rows = document.querySelectorAll('tbody tr.task-row');
 
         rows.forEach(row => {
             let rowTotal = 0;
             const rowInputs = row.querySelectorAll('input[type="number"]');
 
-            rowInputs.forEach(input => {
+            rowInputs.forEach((input, index) => {
                 const val = parseFloat(input.value) || 0;
                 rowTotal += val;
+
+                // Add hours to the corresponding day
+                if (index < 7) {
+                    dailyTotals[index] += val;
+                }
             });
 
             // Update the amount for a specific row
@@ -138,6 +160,32 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             weeklyTotal += rowTotal;
+        });
+
+        // Update daily totals (columns)
+        const dailyTotalCells = document.querySelectorAll('.daily-total');
+        dailyTotalCells.forEach((cell, index) => {
+            const val = dailyTotals[index];
+            cell.textContent = val.toFixed(1);
+
+            // Overtime protection: highlight red if more than 8 hours
+            cell.classList.remove('text-red-600', 'text-green-600', 'text-orange-600', 'text-gray-700');
+            if (index < 5) {
+                if (val > 8) {
+                    cell.classList.add('text-red-600');
+                } else if (val === 8) {
+                    cell.classList.add('text-green-600');
+                } else if (val < 8) {
+                    cell.classList.add('text-orange-600');
+                }
+            } else {
+                // Вихідні дні (субота, неділя) залишаємо сірими, якщо там немає перепрацювань
+                if (val > 0) {
+                     cell.classList.add('text-red-600'); // Або будь-який інший колір для роботи у вихідний
+                } else {
+                     cell.classList.add('text-gray-700');
+                }
+            }
         });
 
         // We update the overall summary at the bottom and color it
