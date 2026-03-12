@@ -66,9 +66,34 @@ def dashboard(request):
 
             # Change the status if you clicked Submit
             if action == 'submit':
-                timesheet.status = WeeklyTimesheet.Status.SUBMITTED
-                timesheet.save()
-                messages.success(request, "Timesheet submitted for approval! 🚀")
+                # Get all logs for this week
+                logs = TimeLog.objects.filter(timesheet=timesheet)
+
+                # Calculate the sum of hours for each date in the dictionary: {date: total_hours}
+                daily_totals = {}
+                for log in logs:
+                    daily_totals[log.date] = daily_totals.get(log.date, 0) + log.hours
+
+                # Determine the dates from Monday to Friday (5 working days) of the current week
+                monday = today - datetime.timedelta(days=today.weekday())
+                workdays = [monday + datetime.timedelta(days=i) for i in range(5)]
+
+                invalid_days = []
+                # We check EVERY working day
+                for day in workdays:
+                    # If there are no logs on this day, get() will return 0
+                    total_for_day = daily_totals.get(day, 0)
+                    if total_for_day != 8:
+                        invalid_days.append(day.strftime('%d.%m'))
+
+                # If at least one working day is not equal to 8 — block the submission
+                if invalid_days:
+                    messages.error(request,
+                                   f"❌ Validation failed: You must log exactly 8 hours per workday. Check these dates: {', '.join(invalid_days)}.")
+                else:
+                    timesheet.status = WeeklyTimesheet.Status.SUBMITTED
+                    timesheet.save()
+                    messages.success(request, "Timesheet submitted for approval! 🚀")
             else:
                 messages.success(request, "Draft saved successfully! 💾")
 
