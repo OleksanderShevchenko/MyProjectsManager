@@ -71,7 +71,7 @@
                     </td>
                     {% endfor %}
 
-                    <td class="px-4 py-4 text-center bg-gray-50 font-semibold text-gray-700">
+                    <td class="px-4 py-4 text-center bg-gray-50 font-semibold text-gray-700 row-total">
                         0.0
                     </td>
                 </tr>
@@ -89,7 +89,7 @@
 
     <div class="bg-gray-50 px-6 py-4 flex justify-between items-center border-t border-gray-200">
         <div class="text-sm text-gray-500">
-            Total hours this week: <span class="font-bold text-gray-900 text-lg">0.0</span> / 40.0
+            Total hours this week: <span class="font-bold text-gray-900 text-lg" id="footer-total">0.0</span> / 40.0
         </div>
 
         <div class="flex space-x-3">
@@ -108,4 +108,79 @@
         </div>
     </div>
 </form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const inputs = document.querySelectorAll('input[type="number"]');
+    const footerTotalElement = document.getElementById('footer-total');
+    const form = document.querySelector('form');
+
+    // A flag that shows whether there have been changes
+    let isDirty = false;
+
+    function updateTotals() {
+        let weeklyTotal = 0;
+        const rows = document.querySelectorAll('tbody tr');
+
+        rows.forEach(row => {
+            let rowTotal = 0;
+            const rowInputs = row.querySelectorAll('input[type="number"]');
+
+            rowInputs.forEach(input => {
+                const val = parseFloat(input.value) || 0;
+                rowTotal += val;
+            });
+
+            // Update the amount for a specific row
+            const rowTotalCell = row.querySelector('.row-total');
+            if (rowTotalCell) {
+                rowTotalCell.textContent = rowTotal.toFixed(1);
+            }
+
+            weeklyTotal += rowTotal;
+        });
+
+        // We update the overall summary at the bottom and color it
+        if (footerTotalElement) {
+            footerTotalElement.textContent = weeklyTotal.toFixed(1);
+            footerTotalElement.classList.remove('text-gray-900', 'text-green-600', 'text-red-600');
+            if (weeklyTotal === 40) {
+                footerTotalElement.classList.add('text-green-600'); // Perfect
+            } else if (weeklyTotal > 40) {
+                footerTotalElement.classList.add('text-red-600'); // Overwork
+            } else {
+                footerTotalElement.classList.add('text-gray-900'); // Underwork
+            }
+        }
+    }
+
+    // We listen to each digit entered.
+    inputs.forEach(input => {
+        input.addEventListener('input', function() {
+            isDirty = true; // The user changed something!
+            updateTotals(); // Recalculate the sums
+        });
+    });
+
+    // If the user clicks Save or Submit - uncheck
+    // so that the browser doesn't curse when the form is submitted legally
+    if (form) {
+        form.addEventListener('submit', function() {
+            isDirty = false;
+        });
+    }
+
+    // Standard browser magic to warn about closing a tab
+    window.addEventListener('beforeunload', function (e) {
+        if (isDirty) {
+            e.preventDefault();
+            e.returnValue = ''; // This will bring up the standard browser confirmation window
+        }
+    });
+
+    // Calculate initial values when loading the page
+    updateTotals();
+});
+</script>
+
 {% endblock %}
