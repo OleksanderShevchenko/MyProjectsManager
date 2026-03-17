@@ -9,7 +9,7 @@ from django.utils import timezone
 from .models import Task, WeeklyTimesheet, TimeLog
 
 
-@login_required(login_url='/admin/login/')  # temporary use login from admin panel
+@login_required(login_url='work_time_reporter:login')  # temporary use login from admin panel
 def dashboard(request, year: int = None, week: int = None):
     # Determine the current day, year, and week number according to the ISO standard
     today = timezone.now().date()
