@@ -3,24 +3,39 @@ import datetime
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db.models import Sum
 from django.utils import timezone
 
 from .models import Task, WeeklyTimesheet, TimeLog
 
 
 @login_required(login_url='/admin/login/')  # temporary use login from admin panel
-def dashboard(request):
+def dashboard(request, year: int = None, week: int = None):
     # Determine the current day, year, and week number according to the ISO standard
     today = timezone.now().date()
-    year, week_number, _ = today.isocalendar()
+
+    if not year or not week:
+        current_year, current_week, _ = today.isocalendar()
+        return redirect('work_time_reporter:dashboard_week', year=current_year, week=current_week)
+
+    try:
+        # Python magic: getting Monday for a given year and week
+        monday = datetime.date.fromisocalendar(year, week, 1)
+        year_ = year
+        week_number = week
+    except ValueError:
+        # If someone entered a non-existent week (for example, 99) - we throw it to the current one
+        current_year, current_week, _ = today.isocalendar()
+        return redirect('work_time_reporter:dashboard_week', year=current_year, week=current_week)
 
     # We are looking for a weekly report. If it does not exist yet, we automatically create it (Draft)
     timesheet, created = WeeklyTimesheet.objects.get_or_create(
         user=request.user,
-        year=year,
+        year=year_,
         week_number=week_number,
         defaults={'status': WeeklyTimesheet.Status.DRAFT}
     )
+
     # SAVE AND SEND BUTTON PROCESSING
     if request.method == 'POST':
         action = request.POST.get('action')
@@ -28,7 +43,7 @@ def dashboard(request):
         # Protection: if the status is not DRAFT, only recall is allowed
         if timesheet.status != WeeklyTimesheet.Status.DRAFT and action != 'recall':
             messages.error(request, "You cannot edit a submitted timesheet.")
-            return redirect('work_time_reporter:dashboard')
+            return redirect('work_time_reporter:dashboard_week', year=year, week=week)
 
         if action in ['save', 'submit']:
             # We go through all the data that came from the table
@@ -75,10 +90,9 @@ def dashboard(request):
                     daily_totals[log.date] = daily_totals.get(log.date, 0) + log.hours
 
                 # Determine the dates from Monday to Friday (5 working days) of the current week
-                monday = today - datetime.timedelta(days=today.weekday())
                 workdays = [monday + datetime.timedelta(days=i) for i in range(5)]
-
                 invalid_days = []
+
                 # We check EVERY working day
                 for day in workdays:
                     # If there are no logs on this day, get() will return 0
@@ -105,11 +119,17 @@ def dashboard(request):
                 messages.info(request, "Timesheet recalled to draft. You can edit it again. ↩️")
 
         # Reload the page to show updated data.
-        return redirect('work_time_reporter:dashboard')
+        return redirect('work_time_reporter:dashboard_week', year=year, week=week)
 
     # Generate a list of 7 dates for the current week (Monday to Sunday)
-    monday = today - datetime.timedelta(days=today.weekday())
     week_dates = [monday + datetime.timedelta(days=i) for i in range(7)]
+
+    # Calculating adjacent weeks for Navigation buttons
+    prev_monday = monday - datetime.timedelta(days=7)
+    prev_year, prev_week, _ = prev_monday.isocalendar()
+
+    next_monday = monday + datetime.timedelta(days=7)
+    next_year, next_week, _ = next_monday.isocalendar()
 
     # We get all the tasks for which the user is assigned
     tasks = Task.objects.filter(assignees=request.user).select_related('project')
@@ -142,6 +162,11 @@ def dashboard(request):
         'week_dates': week_dates,
         'grid_data': grid_data,
         'today': today,
+        # Pass data for buttons to template
+        'prev_year': prev_year,
+        'prev_week': prev_week,
+        'next_year': next_year,
+        'next_week': next_week,
     }
 
     return render(request, 'work_time_reporter/dashboard.html', context)
