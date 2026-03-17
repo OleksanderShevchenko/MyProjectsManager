@@ -129,3 +129,9 @@ STATIC_URL = 'static/'
 
 # use our custom user model instead of standard (will be asier to modify and extend it in future)
 AUTH_USER_MODEL = 'users.CustomUser'
+
+# Where to redirect the user after successful login
+LOGIN_REDIRECT_URL = '/'
+
+# Where is our custom login page (for @login_required)
+LOGIN_URL = 'work_time_reporter:login'
