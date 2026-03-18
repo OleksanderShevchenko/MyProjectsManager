@@ -35,6 +35,10 @@ Copy the example environment file and update the variables if necessary:
 ```bash
 cp .env.example .env
 ```
+Generate new secret key for .env and put it to your .env
+```bash
+uv run python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+```
 
 We use Docker to run PostgreSQL locally.
 ```bash
