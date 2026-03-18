@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/6.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
+import dj_database_url
 import os
 from pathlib import Path
 from dotenv import load_dotenv
@@ -79,15 +80,26 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('POSTGRES_DB'),
-        'USER': os.environ.get('POSTGRES_USER'),
-        'PASSWORD': os.environ.get('POSTGRES_PASSWORD'),
-        'HOST': os.environ.get('POSTGRES_HOST'),
-        'PORT': os.environ.get('POSTGRES_PORT'),
-    }
+DATABASE_URL = os.getenv('DATABASE_URL')
+DB_SOURCE = os.getenv('DB_SOURCE')
+
+DATABASES = {'default': {
+    # for postgres from docker
+    'ENGINE': 'django.db.backends.postgresql',
+    'NAME': os.environ.get('POSTGRES_DB'),
+    'USER': os.environ.get('POSTGRES_USER'),
+    'PASSWORD': os.environ.get('POSTGRES_PASSWORD'),
+    'HOST': os.environ.get('POSTGRES_HOST'),
+    'PORT': os.environ.get('POSTGRES_PORT'),
+}
+} if DB_SOURCE == 'local' else {
+    # for postgres from cloud
+    'default': dj_database_url.config(
+        default=DATABASE_URL,
+        conn_max_age=600,
+        conn_health_checks=True,
+        ssl_require=True,
+    )
 }
 
 
