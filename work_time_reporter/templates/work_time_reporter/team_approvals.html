@@ -43,9 +43,9 @@
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex justify-end space-x-2">
 
-                        <a href="#" class="bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white px-3 py-1.5 rounded-md border border-blue-200 hover:border-transparent transition-colors shadow-sm">
+                       <a href="{% url 'work_time_reporter:timesheet_detail' ts.id %}" class="bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white px-3 py-1.5 rounded-md border border-blue-200 hover:border-transparent transition-colors shadow-sm">
                             👁️ View Details
-                        </a>
+                       </a>
 
                         <form method="POST" class="inline-block">
                             {% csrf_token %}
