@@ -2,11 +2,14 @@ import datetime
 
 from django.shortcuts import render, redirect
 from django.contrib import messages
+from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum
 from django.utils import timezone
 
-from .models import Task, WeeklyTimesheet, TimeLog
+from .models import Task, WeeklyTimesheet, TimeLog, Project
+
+User = get_user_model()
 
 
 @login_required(login_url='work_time_reporter:login')  # temporary use login from admin panel
@@ -171,3 +174,51 @@ def dashboard(request, year: int = None, week: int = None):
 
     return render(request, 'work_time_reporter/dashboard.html', context)
 
+
+@login_required(login_url='work_time_reporter:login')
+def team_approvals(request):
+    # Check if the current user is a manager of at least one project
+    managed_projects = Project.objects.filter(manager=request.user)
+
+    # Protection: if a regular engineer comes in - throw him back to his dashboard
+    if not managed_projects.exists():
+        messages.warning(request, "Access denied. You are not a manager of any project.")
+        return redirect('work_time_reporter:dashboard')  # with this url it will be re-adrest to current week
+
+    # Handling Approve / Reject button presses
+    if request.method == 'POST':
+        timesheet_id = request.POST.get('timesheet_id')
+        action = request.POST.get('action')
+
+        try:
+            ts = WeeklyTimesheet.objects.get(id=timesheet_id)
+            if action == 'approve':
+                ts.status = WeeklyTimesheet.Status.APPROVED
+                ts.save()
+                messages.success(request, f"Timesheet for {ts.user.username} approved! ✅")
+            elif action == 'reject':
+                ts.status = WeeklyTimesheet.Status.DRAFT
+                ts.save()
+                messages.warning(request, f"Timesheet for {ts.user.username} rejected and returned to draft. ❌")
+        except WeeklyTimesheet.DoesNotExist:
+            messages.error(request, "Timesheet not found.")
+
+        return redirect('work_time_reporter:team_approvals')
+
+    # We are looking for all subordinates in the manager's projects
+    managed_users = User.objects.filter(assigned_projects__in=managed_projects).distinct()
+
+    # We are looking for reports with the status SUBMITTED from these subordinates
+    pending_timesheets = WeeklyTimesheet.objects.filter(
+        status=WeeklyTimesheet.Status.SUBMITTED,
+        user__in=managed_users
+    ).order_by('-year', '-week_number')
+
+    # Add the total hours to each report for a nice output
+    for ts in pending_timesheets:
+        ts.total_hours = TimeLog.objects.filter(timesheet=ts).aggregate(Sum('hours'))['hours__sum'] or 0
+
+    context = {
+        'pending_timesheets': pending_timesheets
+    }
+    return render(request, 'work_time_reporter/team_approvals.html', context)
