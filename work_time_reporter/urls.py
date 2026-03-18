@@ -14,6 +14,10 @@ urlpatterns = [
     # root to view details of week report for approval (in read-only mode)
     path('timesheet/<int:timesheet_id>/', views.timesheet_detail, name='timesheet_detail'),
 
+    # year dashboard
+    path('yearly/', views.yearly_dashboard, name='yearly_dashboard'),
+    path('yearly/<int:year>/', views.yearly_dashboard, name='yearly_dashboard_year'),
+
     # When the user enters the main page of the application, we call views.dashboard - it redirect us to current week
     path('', views.dashboard, name='dashboard'),
     path('<int:year>/<int:week>/', views.dashboard, name='dashboard_week'),
