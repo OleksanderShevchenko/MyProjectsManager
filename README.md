@@ -39,6 +39,9 @@ Generate new secret key for .env and put it to your .env
 ```bash
 uv run python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
 ```
+Update database settings:
+ - If you use postgres database from docker - set parameters at start of .env
+ - If you use cloud database - set its url.
 
 We use Docker to run PostgreSQL locally.
 ```bash
