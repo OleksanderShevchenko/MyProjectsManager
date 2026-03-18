@@ -5,6 +5,7 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum
+from django.urls import reverse
 from django.utils import timezone
 
 from .models import Task, WeeklyTimesheet, TimeLog, Project
@@ -297,3 +298,57 @@ def timesheet_detail(request, timesheet_id):
         'is_manager': is_manager,
     }
     return render(request, 'work_time_reporter/timesheet_detail.html', context)
+
+
+@login_required(login_url='work_time_reporter:login')
+def yearly_dashboard(request, year=None):
+    if not year:
+        year = timezone.now().date().year
+
+    # 1. Preparing data for the Weeks Matrix
+    timesheets = WeeklyTimesheet.objects.filter(user=request.user, year=year)
+    timesheet_dict = {ts.week_number: ts for ts in timesheets}
+
+    weeks_data = []
+    # A standard year has 52 weeks (sometimes 53, but for the grid we will take 52)
+    for w in range(1, 53):
+        ts = timesheet_dict.get(w)
+        if ts:
+            # Determine the color depending on the status
+            if ts.status == WeeklyTimesheet.Status.APPROVED:
+                color_class = 'bg-green-500 hover:bg-green-600 shadow-md cursor-pointer'
+            elif ts.status == WeeklyTimesheet.Status.SUBMITTED:
+                color_class = 'bg-yellow-400 hover:bg-yellow-500 shadow-md cursor-pointer'
+            else:
+                color_class = 'bg-gray-400 hover:bg-gray-500 shadow-md cursor-pointer'
+
+            weeks_data.append({
+                'week_num': w,
+                'color': color_class,
+                'status': ts.get_status_display(),
+                'url': reverse('work_time_reporter:dashboard_week', args=[year, w])
+            })
+        else:
+            # Empty week (not yet created)
+            weeks_data.append({
+                'week_num': w,
+                'color': 'bg-gray-100 border border-dashed border-gray-300 hover:bg-indigo-50 cursor-pointer',
+                'status': 'Not Started',
+                'url': reverse('work_time_reporter:dashboard_week', args=[year, w])
+            })
+
+    # 2. Preparing data for the Pie Chart (ADMINISTRATIVE tasks are been ignored)
+    year_logs = TimeLog.objects.filter(user=request.user, date__year=year)
+
+    comm_hours = year_logs.filter(task__project__project_type='COMMERCIAL').aggregate(Sum('hours'))['hours__sum'] or 0
+    non_comm_hours = year_logs.filter(task__project__project_type='INTERNAL').aggregate(Sum('hours'))[
+                         'hours__sum'] or 0
+
+    context = {
+        'current_year': year,
+        'weeks_data': weeks_data,
+        'comm_hours': float(comm_hours),
+        'non_comm_hours': float(non_comm_hours),
+        'total_analyzed': float(comm_hours + non_comm_hours)
+    }
+    return render(request, 'work_time_reporter/yearly_dashboard.html', context)
