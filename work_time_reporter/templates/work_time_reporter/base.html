@@ -15,8 +15,20 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16 items-center">
                 <div class="flex-shrink-0 font-bold text-xl tracking-wider">
-                    ⏱️ MyProjectsManager
+                    <a href="{% url 'work_time_reporter:dashboard' %}" class="flex-shrink-0 font-bold text-xl tracking-wider text-white hover:text-indigo-200 transition">
+                        ⏱️ MyProjectsManager
+                    </a>
+
+                    <div class="hidden md:flex space-x-4">
+                    <a href="{% url 'work_time_reporter:dashboard' %}" class="text-indigo-100 hover:bg-indigo-800 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition">My Timesheet</a>
+
+                    {% if request.user.managed_projects.exists %}
+                    <a href="{% url 'work_time_reporter:team_approvals' %}" class="text-white bg-indigo-800 hover:bg-indigo-700 px-3 py-2 rounded-md text-sm font-medium transition shadow-inner">Team Approvals</a>
+                    {% endif %}
                 </div>
+
+                </div>
+
                 <div>
                     <span class="mr-4 text-sm text-indigo-200">User: <strong>{{ request.user.username }}</strong></span>
                     <form method="POST" action="{% url 'work_time_reporter:logout' %}" class="inline">
