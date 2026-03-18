@@ -1,6 +1,6 @@
 import datetime
 
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
@@ -222,3 +222,78 @@ def team_approvals(request):
         'pending_timesheets': pending_timesheets
     }
     return render(request, 'work_time_reporter/team_approvals.html', context)
+
+
+@login_required(login_url='work_time_reporter:login')
+def timesheet_detail(request, timesheet_id):
+    timesheet = get_object_or_404(WeeklyTimesheet, id=timesheet_id)
+
+    # Перевірка доступу: дивитися може або сам власник, або його менеджер
+    managed_projects = Project.objects.filter(manager=request.user)
+    managed_users = User.objects.filter(assigned_projects__in=managed_projects)
+
+    is_manager = request.user != timesheet.user and timesheet.user in managed_users
+    is_owner = request.user == timesheet.user
+
+    if not (is_manager or is_owner):
+        messages.error(request, "Access denied. You don't have permission to view this timesheet.")
+        return redirect('work_time_reporter:dashboard')
+
+    # Якщо менеджер прямо тут натискає Approve або Reject
+    if request.method == 'POST' and is_manager:
+        action = request.POST.get('action')
+        if action == 'approve':
+            timesheet.status = WeeklyTimesheet.Status.APPROVED
+            timesheet.save()
+            messages.success(request, f"Timesheet for {timesheet.user.username} approved! ✅")
+            return redirect('work_time_reporter:team_approvals')
+        elif action == 'reject':
+            timesheet.status = WeeklyTimesheet.Status.DRAFT
+            timesheet.save()
+            messages.warning(request, f"Timesheet for {timesheet.user.username} rejected. ❌")
+            return redirect('work_time_reporter:team_approvals')
+
+    # Збираємо дати тижня
+    monday = datetime.date.fromisocalendar(timesheet.year, timesheet.week_number, 1)
+    week_dates = [monday + datetime.timedelta(days=i) for i in range(7)]
+
+    # Збираємо задачі саме того юзера, чий це звіт!
+    tasks = Task.objects.filter(assignees=timesheet.user).select_related('project')
+    logs = TimeLog.objects.filter(timesheet=timesheet)
+    log_dict = {(log.task_id, log.date): log.hours for log in logs}
+
+    grid_data = []
+    daily_totals = [0] * 7
+    weekly_total = 0
+
+    # Будуємо матрицю і одразу рахуємо всі суми
+    for task in tasks:
+        days_data = []
+        row_total = 0
+        for i, current_date in enumerate(week_dates):
+            hours = log_dict.get((task.id, current_date), 0)
+            if hours:
+                hours_float = float(hours)
+                row_total += hours_float
+                daily_totals[i] += hours_float
+                weekly_total += hours_float
+            else:
+                hours = ""
+
+            days_data.append({'date': current_date, 'hours': str(hours).rstrip('0').rstrip('.') if hours else ""})
+
+        grid_data.append({
+            'task': task,
+            'days': days_data,
+            'row_total': row_total
+        })
+
+    context = {
+        'timesheet': timesheet,
+        'week_dates': week_dates,
+        'grid_data': grid_data,
+        'daily_totals': daily_totals,
+        'weekly_total': weekly_total,
+        'is_manager': is_manager,
+    }
+    return render(request, 'work_time_reporter/timesheet_detail.html', context)
