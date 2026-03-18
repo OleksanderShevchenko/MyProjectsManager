@@ -17,36 +17,49 @@
             </tr>
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
-            {% for ts in pending_timesheets %}
-            <tr class="hover:bg-gray-50">
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="font-bold text-gray-900">👤 {{ ts.user.username }}</div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-center">
-                    <div class="text-sm text-gray-900">Year: <strong>{{ ts.year }}</strong></div>
-                    <div class="text-sm text-gray-500">Week: <strong>{{ ts.week_number }}</strong></div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-center">
-                    <span class="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full 
-                        {% if ts.total_hours == 40 %}bg-green-100 text-green-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">
-                        {{ ts.total_hours }}h
-                    </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <form method="POST" class="inline-flex space-x-2">
-                        {% csrf_token %}
-                        <input type="hidden" name="timesheet_id" value="{{ ts.id }}">
-                        
-                        <button type="submit" name="action" value="approve" class="bg-green-50 text-green-700 hover:bg-green-600 hover:text-white px-3 py-1.5 rounded-md border border-green-200 hover:border-transparent transition-colors shadow-sm">
-                            ✅ Approve
-                        </button>
-                        
-                        <button type="submit" name="action" value="reject" class="bg-red-50 text-red-700 hover:bg-red-600 hover:text-white px-3 py-1.5 rounded-md border border-red-200 hover:border-transparent transition-colors shadow-sm">
-                            ❌ Reject
-                        </button>
-                    </form>
-                </td>
-            </tr>
+            {% regroup pending_timesheets by user.username as user_timesheets %}
+
+            {% for user_group in user_timesheets %}
+                <tr class="bg-indigo-50 border-t-2 border-indigo-100">
+                    <td colspan="4" class="px-6 py-2 text-sm font-bold text-indigo-900">
+                        👤 {{ user_group.grouper }}
+                    </td>
+                </tr>
+
+                {% for ts in user_group.list %}
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="px-6 py-4 whitespace-nowrap pl-10">
+                        <span class="text-sm text-gray-500">Timesheet ID: #{{ ts.id }}</span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center">
+                        <div class="text-sm text-gray-900">Year: <strong>{{ ts.year }}</strong></div>
+                        <div class="text-sm text-gray-500">Week: <strong>{{ ts.week_number }}</strong></div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center">
+                        <span class="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full
+                            {% if ts.total_hours == 40 %}bg-green-100 text-green-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                            {{ ts.total_hours }}h
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex justify-end space-x-2">
+
+                        <a href="#" class="bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white px-3 py-1.5 rounded-md border border-blue-200 hover:border-transparent transition-colors shadow-sm">
+                            👁️ View Details
+                        </a>
+
+                        <form method="POST" class="inline-block">
+                            {% csrf_token %}
+                            <input type="hidden" name="timesheet_id" value="{{ ts.id }}">
+                            <button type="submit" name="action" value="approve" class="bg-green-50 text-green-700 hover:bg-green-600 hover:text-white px-3 py-1.5 rounded-md border border-green-200 hover:border-transparent transition-colors shadow-sm">
+                                ✅ Approve
+                            </button>
+                            <button type="submit" name="action" value="reject" class="bg-red-50 text-red-700 hover:bg-red-600 hover:text-white px-3 py-1.5 rounded-md border border-red-200 hover:border-transparent transition-colors shadow-sm">
+                                ❌ Reject
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
             {% empty %}
             <tr>
                 <td colspan="4" class="px-6 py-12 text-center text-gray-500">

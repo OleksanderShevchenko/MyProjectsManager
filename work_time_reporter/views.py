@@ -212,7 +212,7 @@ def team_approvals(request):
     pending_timesheets = WeeklyTimesheet.objects.filter(
         status=WeeklyTimesheet.Status.SUBMITTED,
         user__in=managed_users
-    ).order_by('-year', '-week_number')
+    ).order_by('user__username', '-year', '-week_number')
 
     # Add the total hours to each report for a nice output
     for ts in pending_timesheets:
