@@ -237,11 +237,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // If the user clicks Save or Submit - uncheck
     // so that the browser doesn't curse when the form is submitted legally
-    if (form) {
-        form.addEventListener('submit', function() {
+    const submitButtons = document.querySelectorAll('button[type="submit"]');
+    submitButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
             isDirty = false;
         });
-    }
+    });
 
     // Standard browser magic to warn about closing a tab
     window.addEventListener('beforeunload', function (e) {
