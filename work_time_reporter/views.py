@@ -13,7 +13,7 @@ from .models import Task, WeeklyTimesheet, TimeLog, Project
 User = get_user_model()
 
 
-@login_required(login_url='work_time_reporter:login')  # temporary use login from admin panel
+@login_required(login_url='work_time_reporter:login')
 def dashboard(request, year: int = None, week: int = None):
     # Determine the current day, year, and week number according to the ISO standard
     today = timezone.now().date()
@@ -61,6 +61,8 @@ def dashboard(request, year: int = None, week: int = None):
                         try:
                             task = Task.objects.get(id=task_id)
                             log_date = datetime.datetime.strptime(date_str, '%Y-%m-%d').date()
+                            # Looking for a hidden comment field for this cell
+                            comment_val = request.POST.get(f'comment_{task_id}_{date_str}', '')
 
                             # If the user entered hours (greater than 0)
                             if value and float(value) > 0:
@@ -70,6 +72,7 @@ def dashboard(request, year: int = None, week: int = None):
                                     date=log_date,
                                     defaults={
                                         'hours': float(value),
+                                        'comment': comment_val,
                                         'timesheet': timesheet
                                     }
                                 )
@@ -141,19 +144,23 @@ def dashboard(request, year: int = None, week: int = None):
     # Getting all the time logs for this weekly report
     logs = TimeLog.objects.filter(timesheet=timesheet)
 
-    # We are making a convenient dictionary-cripple for quickly searching for hours by coordinates (task_id, date)
-    log_dict = {(log.task_id, log.date): log.hours for log in logs}
+    # We are making a convenient dictionary-cripple for quickly searching for logs by coordinates (task_id, date)
+    log_dict = {(log.task_id, log.date): log for log in logs}
 
     # Assembling the final "matrix" for the HTML template
     grid_data = []
     for task in tasks:
         days_data = []
         for current_date in week_dates:
-            # We look for the hours in our dictionary. If not, we put an empty string
-            hours = log_dict.get((task.id, current_date), "")
+            # We look for the log in our dictionary. If not, we put hours and comments to an empty string
+            log = log_dict.get((task.id, current_date))
+            hours = log.hours if log else ""
+            comment = log.comment if log else ""
+
             days_data.append({
                 'date': current_date,
-                'hours': hours
+                'hours': hours,
+                'comment': comment
             })
 
         grid_data.append({
