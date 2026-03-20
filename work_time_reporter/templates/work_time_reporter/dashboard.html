@@ -82,17 +82,25 @@
                     </td>
 
                     {% for day in row.days %}
-                    <td class="px-2 py-4 text-center {% if day.date == today %}bg-indigo-50/30{% endif %}">
-                        <input
-                            type="number"
-                            step="0.5"
-                            min="0"
-                            max="24"
-                            name="hours_{{ row.task.id }}_{{ day.date|date:'Y-m-d' }}"
-                            value="{{ day.hours }}"
-                            class="w-16 text-center border border-gray-300 rounded-md shadow-sm py-1.5 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm {% if day.hours %}bg-indigo-50 font-semibold text-indigo-700{% endif %}"
-                            {% if timesheet.status != 'DRAFT' %}disabled{% endif %}
-                        >
+                    <td class="p-1 relative group">
+                        <input type="number"
+                               name="hours_{{ row.task.id }}_{{ day.date|date:'Y-m-d' }}"
+                               value="{{ day.hours }}"
+                               step="0.5" min="0" max="24"
+                               {% if timesheet.status != 'DRAFT' %}disabled{% endif %}
+                               class="w-full h-10 px-2 text-center border-0 focus:ring-2 focus:ring-indigo-500 bg-transparent text-gray-900 rounded-md day-input transition-colors {% if day.comment %}bg-blue-50{% endif %}"
+                               data-task-id="{{ row.task.id }}"
+                               data-date="{{ day.date|date:'Y-m-d' }}"
+                               title="Double-click to add/edit work details">
+
+                        <input type="hidden"
+                               name="comment_{{ row.task.id }}_{{ day.date|date:'Y-m-d' }}"
+                               id="comment_{{ row.task.id }}_{{ day.date|date:'Y-m-d' }}"
+                               value="{{ day.comment }}">
+
+                        <div id="indicator_{{ row.task.id }}_{{ day.date|date:'Y-m-d' }}"
+                             class="absolute top-1 right-1 w-2 h-2 rounded-full bg-blue-500 shadow-sm pointer-events-none {% if not day.comment %}hidden{% endif %}">
+                        </div>
                     </td>
                     {% endfor %}
 
@@ -147,6 +155,27 @@
         </div>
     </div>
 </form>
+
+<div id="commentModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center z-50 backdrop-blur-sm transition-opacity">
+    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md transform transition-all">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-bold text-gray-900">Work Details 💬</h3>
+            <button type="button" id="closeModalIcon" class="text-gray-400 hover:text-red-500 transition">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <p class="text-sm text-gray-500 mb-4" id="modalDateInfo">Log details for your activity.</p>
+
+        <textarea id="modalTextarea" rows="4"
+                  class="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none shadow-inner"
+                  placeholder="E.g., Designed 3D model for the main deck..."></textarea>
+
+        <div class="mt-5 flex justify-end space-x-3">
+            <button type="button" id="modalCancel" class="px-4 py-2 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition">Cancel</button>
+            <button type="button" id="modalSave" class="px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 shadow-md transition">Save Note</button>
+        </div>
+    </div>
+</div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -255,6 +284,72 @@ document.addEventListener('DOMContentLoaded', function() {
     // Calculate initial values when loading the page
     updateTotals();
 });
+
+    // --- Modal comment window logic ---
+    const modal = document.getElementById('commentModal');
+    const modalTextarea = document.getElementById('modalTextarea');
+    const modalSave = document.getElementById('modalSave');
+    const modalCancel = document.getElementById('modalCancel');
+    const closeModalIcon = document.getElementById('closeModalIcon');
+    let currentInputCell = null;
+
+    // Open by double click
+    document.querySelectorAll('.day-input').forEach(input => {
+        input.addEventListener('dblclick', function() {
+            // If the week is locked (Submitted/Approved), we don't allow editing the comment
+            if (this.disabled) return;
+
+            const taskId = this.dataset.taskId;
+            const dateStr = this.dataset.date;
+            const hiddenComment = document.getElementById(`comment_${taskId}_${dateStr}`);
+
+            currentInputCell = {
+                taskId: taskId,
+                dateStr: dateStr,
+                hiddenInput: hiddenComment,
+                visibleInput: this
+            };
+
+            document.getElementById('modalDateInfo').innerText = `Adding details for ${dateStr}`;
+            modalTextarea.value = hiddenComment.value;
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            modalTextarea.focus();
+        });
+    });
+
+    function closeModal() {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        currentInputCell = null;
+    }
+
+    modalCancel.addEventListener('click', closeModal);
+    closeModalIcon.addEventListener('click', closeModal);
+
+    // Save comment
+    modalSave.addEventListener('click', () => {
+        if (currentInputCell) {
+            const text = modalTextarea.value;
+            currentInputCell.hiddenInput.value = text;
+
+            const indicator = document.getElementById(`indicator_${currentInputCell.taskId}_${currentInputCell.dateStr}`);
+
+            // If there is text - show a blue dot and highlight the background
+            if (text.trim() !== '') {
+                indicator.classList.remove('hidden');
+                currentInputCell.visibleInput.classList.add('bg-blue-50');
+            } else {
+                indicator.classList.add('hidden');
+                currentInputCell.visibleInput.classList.remove('bg-blue-50');
+            }
+
+            isDirty = true; // Activate protection against closing the tab
+            currentInputCell.visibleInput.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        closeModal();
+    });
 </script>
 
 {% endblock %}
