@@ -233,9 +233,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     cell.classList.add('text-orange-600');
                 }
             } else {
-                // Вихідні дні (субота, неділя) залишаємо сірими, якщо там немає перепрацювань
+                // Leave weekends (Saturday, Sunday) grayed out if there are no overtime days
                 if (val > 0) {
-                     cell.classList.add('text-red-600'); // Або будь-який інший колір для роботи у вихідний
+                     cell.classList.add('text-red-600'); // Or any other color for work on output
                 } else {
                      cell.classList.add('text-gray-700');
                 }
@@ -283,9 +283,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Calculate initial values when loading the page
     updateTotals();
-});
 
-    // --- Modal comment window logic ---
+    // --- MODAL WINDOW LOGIC IS NOW HERE, INSIDE ---
     const modal = document.getElementById('commentModal');
     const modalTextarea = document.getElementById('modalTextarea');
     const modalSave = document.getElementById('modalSave');
@@ -345,11 +344,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 currentInputCell.visibleInput.classList.remove('bg-blue-50');
             }
 
-            isDirty = true; // Activate protection against closing the tab
-            currentInputCell.visibleInput.dispatchEvent(new Event('change', { bubbles: true }));
+            // Now this variable is guaranteed to be the same one checked by beforeunload!
+            isDirty = true;
         }
         closeModal();
     });
+}); // <--- End of DOMContentLoaded
 </script>
 
 {% endblock %}
