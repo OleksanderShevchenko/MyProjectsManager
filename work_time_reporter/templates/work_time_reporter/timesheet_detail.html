@@ -55,9 +55,23 @@
                         <div class="text-sm text-gray-500">{{ row.task.title }}</div>
                     </td>
                     {% for day in row.days %}
-                    <td class="px-2 py-4 text-center">
+                    <td class="px-2 py-4 text-center relative group">
                         {% if day.hours %}
-                            <span class="px-2 py-1 bg-indigo-50 text-indigo-700 font-semibold rounded">{{ day.hours }}</span>
+                            <span class="px-2 py-1 bg-indigo-50 text-indigo-700 font-semibold rounded inline-block relative cursor-default">
+                                {{ day.hours }}
+
+                                {% if day.comment %}
+                                    <span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-blue-500 rounded-full border-2 border-white z-0"></span>
+                                {% endif %}
+                            </span>
+
+                            {% if day.comment %}
+                            <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block z-50 w-48 bg-gray-800 text-white text-xs rounded py-2 px-3 text-left shadow-xl whitespace-normal break-words">
+                                💬 {{ day.comment }}
+                                <div class="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
+                            </div>
+                            {% endif %}
+
                         {% else %}
                             <span class="text-gray-300">-</span>
                         {% endif %}
