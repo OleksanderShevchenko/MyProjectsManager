@@ -268,7 +268,8 @@ def timesheet_detail(request, timesheet_id):
     # Збираємо задачі саме того юзера, чий це звіт!
     tasks = Task.objects.filter(assignees=timesheet.user).select_related('project')
     logs = TimeLog.objects.filter(timesheet=timesheet)
-    log_dict = {(log.task_id, log.date): log.hours for log in logs}
+    # store complete log object in dict value to have access to comments
+    log_dict = {(log.task_id, log.date): log for log in logs}
 
     grid_data = []
     daily_totals = [0] * 7
@@ -279,16 +280,24 @@ def timesheet_detail(request, timesheet_id):
         days_data = []
         row_total = 0
         for i, current_date in enumerate(week_dates):
-            hours = log_dict.get((task.id, current_date), 0)
-            if hours:
-                hours_float = float(hours)
+            log = log_dict.get((task.id, current_date))
+
+            if log and log.hours:
+                hours_float = float(log.hours)
                 row_total += hours_float
                 daily_totals[i] += hours_float
                 weekly_total += hours_float
+                hours_str = str(log.hours).rstrip('0').rstrip('.')
+                comment = log.comment  # add comments
             else:
-                hours = ""
+                hours_str = ""
+                comment = ""
 
-            days_data.append({'date': current_date, 'hours': str(hours).rstrip('0').rstrip('.') if hours else ""})
+            days_data.append({
+                'date': current_date,
+                'hours': hours_str,
+                'comment': comment  # pass comment into template
+            })
 
         grid_data.append({
             'task': task,
