@@ -88,7 +88,7 @@
                                value="{{ day.hours }}"
                                step="0.5" min="0" max="24"
                                {% if timesheet.status != 'DRAFT' %}disabled{% endif %}
-                               class="w-full h-10 px-2 text-center border-0 focus:ring-2 focus:ring-indigo-500 bg-transparent text-gray-900 rounded-md day-input transition-colors {% if day.comment %}bg-blue-50{% endif %}"
+                               class="w-full h-10 px-2 text-center border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-gray-900 rounded-md day-input transition-colors {% if day.comment %}bg-blue-50 border-blue-300{% else %}bg-white hover:bg-gray-50{% endif %}"
                                data-task-id="{{ row.task.id }}"
                                data-date="{{ day.date|date:'Y-m-d' }}"
                                title="Double-click to add/edit work details">
@@ -99,7 +99,8 @@
                                value="{{ day.comment }}">
 
                         <div id="indicator_{{ row.task.id }}_{{ day.date|date:'Y-m-d' }}"
-                             class="absolute top-1 right-1 w-2 h-2 rounded-full bg-blue-500 shadow-sm pointer-events-none {% if not day.comment %}hidden{% endif %}">
+                             class="absolute top-1 right-1 pointer-events-none {% if not day.comment %}hidden{% endif %}"
+                             style="width: 0; height: 0; border-top: 10px solid #3b82f6; border-left: 10px solid transparent;">
                         </div>
                     </td>
                     {% endfor %}
