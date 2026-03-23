@@ -1,0 +1,57 @@
+{% extends 'work_time_reporter/base.html' %}
+
+{% block content %}
+<div class="max-w-md mx-auto bg-white shadow-lg rounded-xl p-8 mt-10 border border-gray-100 relative overflow-hidden">
+    <div class="text-center mb-6">
+        <h2 class="text-2xl font-extrabold text-gray-900">Import from MS Project</h2>
+        <p class="text-sm text-gray-500 mt-2">Fetch your historical timesheets directly from PWA.</p>
+    </div>
+
+    <form method="post" id="importForm" class="space-y-5">
+        {% csrf_token %}
+        <div>
+            <label class="block text-sm font-bold text-gray-700 mb-1">Damen Email</label>
+            <input type="email" name="email" value="{{ user.email }}" required 
+                   class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm h-10 px-3 border">
+        </div>
+        
+        <div>
+            <label class="block text-sm font-bold text-gray-700 mb-1">Password</label>
+            <input type="password" name="password" required placeholder="Your current password" 
+                   class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm h-10 px-3 border">
+            <p class="text-xs text-gray-400 mt-1 flex items-center">
+                <svg class="w-4 h-4 mr-1 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                We do NOT store your password. It's used only once.
+            </p>
+        </div>
+
+        <div>
+            <label class="block text-sm font-bold text-gray-700 mb-1">Target Year</label>
+            <input type="number" name="year" value="2020" required min="2010" max="2030" 
+                   class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm h-10 px-3 border">
+        </div>
+
+        <button type="submit" id="submitBtn" 
+                class="w-full flex justify-center items-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors">
+            <span>Fetch Data</span>
+            <svg id="loadingSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+        </button>
+    </form>
+
+    <div id="loadingOverlay" class="absolute inset-0 bg-white bg-opacity-80 hidden flex-col items-center justify-center z-10">
+        <p class="text-indigo-600 font-bold animate-pulse mt-4">Connecting to PWA... Please wait.</p>
+    </div>
+</div>
+
+<script>
+    document.getElementById('importForm').addEventListener('submit', function() {
+        document.getElementById('submitBtn').disabled = true;
+        document.getElementById('loadingSpinner').classList.remove('hidden');
+        document.getElementById('loadingOverlay').classList.remove('hidden');
+        document.getElementById('loadingOverlay').classList.add('flex');
+    });
+</script>
+{% endblock %}

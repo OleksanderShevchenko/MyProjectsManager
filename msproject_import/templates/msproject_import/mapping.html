@@ -1,0 +1,63 @@
+{% extends 'work_time_reporter/base.html' %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto bg-white shadow-lg rounded-xl p-8 mt-6 border border-gray-100">
+    <div class="flex justify-between items-center mb-6 border-b pb-4">
+        <div>
+            <h2 class="text-2xl font-extrabold text-gray-900">Map Your Projects</h2>
+            <p class="text-sm text-gray-500 mt-1">We found <strong class="text-indigo-600">{{ batch.staged_projects.count }}</strong> unique projects in your {{ batch.year }} timesheet.</p>
+        </div>
+        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+            Step 2 of 2: Classification
+        </span>
+    </div>
+
+    <form method="post" class="space-y-6">
+        {% csrf_token %}
+        <div class="overflow-hidden border border-gray-200 sm:rounded-lg">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                            Project Name (from PWA)
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider w-1/3">
+                            Project Type
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for project in batch.staged_projects.all %}
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {{ project.ms_project_name }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <select name="project_{{ project.id }}" required 
+                                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm h-10 px-3 border cursor-pointer">
+                                <option value="" disabled selected>-- Select Type --</option>
+                                <option value="COMMERCIAL">Commercial (Billable)</option>
+                                <option value="INTERNAL">Internal (Non-Commercial)</option>
+                                <option value="ADMINISTRATIVE">Administrative / Leave</option>
+                            </select>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="2" class="px-6 py-4 text-center text-gray-500">No projects found for this period.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="flex justify-end pt-4">
+            <button type="submit" 
+                    class="inline-flex justify-center items-center py-2.5 px-6 border border-transparent rounded-md shadow-sm text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                Send to Manager for Approval
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
