@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     # first local app
     'users',
     'work_time_reporter',
+    'msproject_import',
 ]
 
 MIDDLEWARE = [
