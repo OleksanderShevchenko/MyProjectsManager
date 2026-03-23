@@ -19,5 +19,6 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('import/', include('msproject_import.urls')),
     path('', include('work_time_reporter.urls')),
 ]
