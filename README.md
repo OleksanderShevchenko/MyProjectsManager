@@ -43,6 +43,8 @@ Update database settings:
  - If you use postgres database from docker - set parameters at start of .env
  - If you use cloud database - set its url.
 
+To be able to import data from MS Project update PWA_URL in your .env
+
 We use Docker to run PostgreSQL locally.
 ```bash
 docker-compose up -d
