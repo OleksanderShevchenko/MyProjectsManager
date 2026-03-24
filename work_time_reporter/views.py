@@ -151,17 +151,27 @@ def dashboard(request, year: int = None, week: int = None):
     grid_data = []
     for task in tasks:
         days_data = []
+        row_total = 0  # variable for summing up hours per project/task
+
         for current_date in week_dates:
             # We look for the log in our dictionary. If not, we put hours and comments to an empty string
             log = log_dict.get((task.id, current_date))
             hours = log.hours if log else ""
             comment = log.comment if log else ""
 
+            # Add to the total of the row if there are hours
+            if log and log.hours:
+                row_total += float(log.hours)
+
             days_data.append({
                 'date': current_date,
                 'hours': hours,
                 'comment': comment
             })
+
+        # If the week is blocked and there are no hours at all - skip this task
+        if timesheet.status != 'DRAFT' and row_total == 0:
+            continue
 
         grid_data.append({
             'task': task,
@@ -236,7 +246,7 @@ def team_approvals(request):
 def timesheet_detail(request, timesheet_id):
     timesheet = get_object_or_404(WeeklyTimesheet, id=timesheet_id)
 
-    # Перевірка доступу: дивитися може або сам власник, або його менеджер
+    # Access control: either the owner himself or his manager can view
     managed_projects = Project.objects.filter(manager=request.user)
     managed_users = User.objects.filter(assigned_projects__in=managed_projects)
 
@@ -247,7 +257,7 @@ def timesheet_detail(request, timesheet_id):
         messages.error(request, "Access denied. You don't have permission to view this timesheet.")
         return redirect('work_time_reporter:dashboard')
 
-    # Якщо менеджер прямо тут натискає Approve або Reject
+    # If the manager clicks Approve or Reject right here
     if request.method == 'POST' and is_manager:
         action = request.POST.get('action')
         if action == 'approve':
@@ -261,11 +271,11 @@ def timesheet_detail(request, timesheet_id):
             messages.warning(request, f"Timesheet for {timesheet.user.username} rejected. ❌")
             return redirect('work_time_reporter:team_approvals')
 
-    # Збираємо дати тижня
+    # Collecting the dates of the week
     monday = datetime.date.fromisocalendar(timesheet.year, timesheet.week_number, 1)
     week_dates = [monday + datetime.timedelta(days=i) for i in range(7)]
 
-    # Збираємо задачі саме того юзера, чий це звіт!
+    # We collect tasks for the user whose report this is!
     tasks = Task.objects.filter(assignees=timesheet.user).select_related('project')
     logs = TimeLog.objects.filter(timesheet=timesheet)
     # store complete log object in dict value to have access to comments
@@ -275,7 +285,7 @@ def timesheet_detail(request, timesheet_id):
     daily_totals = [0] * 7
     weekly_total = 0
 
-    # Будуємо матрицю і одразу рахуємо всі суми
+    # We build a matrix and immediately calculate all the sums
     for task in tasks:
         days_data = []
         row_total = 0
@@ -298,6 +308,10 @@ def timesheet_detail(request, timesheet_id):
                 'hours': hours_str,
                 'comment': comment  # pass comment into template
             })
+
+        # If the week is blocked and there are no hours at all - skip this task
+        if timesheet.status != 'DRAFT' and row_total == 0:
+            continue
 
         grid_data.append({
             'task': task,
