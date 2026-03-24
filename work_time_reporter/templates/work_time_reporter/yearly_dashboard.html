@@ -7,7 +7,17 @@
 <div class="mb-8 flex justify-between items-end">
     <div>
         <h1 class="text-3xl font-extrabold text-gray-900">Yearly Overview</h1>
-        <p class="text-gray-500 mt-1">Timesheet Matrix & Statistics for <strong>{{ current_year }}</strong></p>
+        <p class="text-gray-500 mt-1">Timesheet Matrix & Statistics</p>
+    </div>
+
+    <div class="flex items-center space-x-4 bg-white px-4 py-2 rounded-lg border border-gray-200 shadow-sm">
+        <a href="{% url 'work_time_reporter:yearly_dashboard_year' current_year|add:'-1' %}" class="text-gray-500 hover:text-indigo-600 transition">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+        </a>
+        <span class="text-xl font-bold text-gray-800">{{ current_year }}</span>
+        <a href="{% url 'work_time_reporter:yearly_dashboard_year' current_year|add:'1' %}" class="text-gray-500 hover:text-indigo-600 transition">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+        </a>
     </div>
 </div>
 
