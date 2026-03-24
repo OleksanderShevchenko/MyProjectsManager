@@ -10,7 +10,7 @@
     <form method="post" id="importForm" class="space-y-5">
         {% csrf_token %}
         <div>
-            <label class="block text-sm font-bold text-gray-700 mb-1">Damen Email</label>
+            <label class="block text-sm font-bold text-gray-700 mb-1">User Email</label>
             <input type="email" name="email" value="{{ user.email }}" required 
                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm h-10 px-3 border">
         </div>
