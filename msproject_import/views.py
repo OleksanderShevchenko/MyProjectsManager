@@ -107,6 +107,10 @@ def approve_import(request, batch_id):
         try:
             # We use a transaction: either everything is successful, or nothing is written
             with transaction.atomic():
+
+                current_year = datetime.now().year
+                is_historical = batch.year < current_year  # check if the year is previous towards current year
+
                 # 1. Create Projects
                 project_map = {}
                 for sp in batch.staged_projects.all():
@@ -116,7 +120,7 @@ def approve_import(request, batch_id):
                         defaults={
                             'project_type': sp.project_type or 'COMMERCIAL',
                             'year': batch.year,
-                            'is_active': True,
+                            'is_active': not is_historical,  # by default all previous years projects assumed closed
                             'manager': request.user  # Those who is approving is become the projects manager
                         }
                     )
