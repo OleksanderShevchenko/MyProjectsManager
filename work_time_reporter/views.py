@@ -5,6 +5,7 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum
+from django.db.models import Q
 from django.urls import reverse
 from django.utils import timezone
 
@@ -138,8 +139,11 @@ def dashboard(request, year: int = None, week: int = None):
     next_monday = monday + datetime.timedelta(days=7)
     next_year, next_week, _ = next_monday.isocalendar()
 
-    # We get all the tasks for which the user is assigned
-    tasks = Task.objects.filter(assignees=request.user).select_related('project')
+    # We get all the tasks for which the user is assigned - add where project is not closed or there is logged  time
+    tasks = Task.objects.filter(
+        Q(assignees=request.user) &
+        (Q(project__is_active=True) | Q(time_logs__timesheet=timesheet))
+    ).distinct().select_related('project')
 
     # Getting all the time logs for this weekly report
     logs = TimeLog.objects.filter(timesheet=timesheet)
