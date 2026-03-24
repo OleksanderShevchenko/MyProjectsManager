@@ -18,25 +18,25 @@ def import_start(request):
         year = request.POST.get('year')
 
         if not email or not password or not year:
-            messages.error(request, "Всі поля обов'язкові!")
+            messages.error(request, "All fields are required.!")
             return redirect('msproject_import:start')
 
         try:
-            # 1. Тягнемо дані через твій скрипт
+            # 1. Pulling data through fetch_pwa_data service script
             daily_data_map, unique_projects = fetch_pwa_data(email, password, int(year))
 
             if not daily_data_map:
-                messages.warning(request, f"Даних за {year} рік не знайдено.")
+                messages.warning(request, f"Data for {year} year has not found.")
                 return redirect('msproject_import:start')
 
-            # 2. Створюємо пакет (Batch)
+            # 2. Create a batch
             batch = ImportBatch.objects.create(user=request.user, year=year)
 
-            # 3. Записуємо унікальні проєкти для розмітки
+            # 3. We record unique projects for markup
             for proj_name in unique_projects:
                 StagingProject.objects.create(batch=batch, ms_project_name=proj_name)
 
-            # 4. Записуємо всі години в сирому вигляді
+            # 4. Record all hours in raw form
             logs_to_create = []
             for date_str, items in daily_data_map.items():
                 log_date = datetime.strptime(date_str, '%Y-%m-%d').date()
@@ -49,14 +49,14 @@ def import_start(request):
                         ms_task_name=item['task']
                     ))
 
-            # bulk_create зберігає всі записи за 1 запит до бази (дуже швидко!)
+            # bulk_create saves all records in 1 database query (very fast!)
             StagingLog.objects.bulk_create(logs_to_create)
 
-            messages.success(request, f"Успішно завантажено {len(unique_projects)} проєктів. Тепер вкажіть їхні типи.")
+            messages.success(request, f"Successfully loaded {len(unique_projects)} projects. Now indicate their types.")
             return redirect('msproject_import:mapping', batch_id=batch.id)
 
         except Exception as e:
-            messages.error(request, f"Помилка імпорту: {str(e)}")
+            messages.error(request, f"Import error: {str(e)}")
             return redirect('msproject_import:start')
 
     return render(request, 'msproject_import/start.html')
@@ -67,7 +67,7 @@ def import_mapping(request, batch_id):
     batch = get_object_or_404(ImportBatch, id=batch_id, user=request.user)
 
     if request.method == 'POST':
-        # Зберігаємо вибрані типи проєктів
+        # Save selected project types
         projects = batch.staged_projects.all()
         for proj in projects:
             selected_type = request.POST.get(f'project_{proj.id}')
@@ -75,11 +75,11 @@ def import_mapping(request, batch_id):
                 proj.project_type = selected_type
                 proj.save()
 
-        # Переводимо статус у PENDING (щоб побачив менеджер)
+        # Change the status to PENDING (so that the manager can see it)
         batch.status = ImportBatch.Status.PENDING
         batch.save()
 
-        messages.success(request, "Дані успішно відправлені менеджеру на затвердження!")
+        messages.success(request, "The data has been successfully sent to the manager for approval!")
         return redirect('work_time_reporter:dashboard')
 
     return render(request, 'msproject_import/mapping.html', {'batch': batch})
@@ -87,7 +87,7 @@ def import_mapping(request, batch_id):
 
 @login_required(login_url='work_time_reporter:login')
 def pending_imports(request):
-    # Доступ тільки для менеджерів (staff)
+    # Access only for managers (staff)
     if not request.user.is_staff:
         messages.error(request, "Access denied.")
         return redirect('work_time_reporter:dashboard')
@@ -105,56 +105,56 @@ def approve_import(request, batch_id):
 
     if request.method == 'POST':
         try:
-            # Використовуємо транзакцію: або все успішно, або нічого не запишеться
+            # We use a transaction: either everything is successful, or nothing is written
             with transaction.atomic():
-                # 1. СТВОРЕННЯ ПРОЄКТІВ
+                # 1. Create Projects
                 project_map = {}
                 for sp in batch.staged_projects.all():
-                    # Шукаємо проєкт за назвою або створюємо новий
+                    # Search for a project by name or create a new one
                     project, created = Project.objects.get_or_create(
                         name=sp.ms_project_name,
                         defaults={
                             'project_type': sp.project_type or 'COMMERCIAL',
                             'year': batch.year,
                             'is_active': True,
-                            'manager': request.user  # Той, хто апрувить, стає менеджером проєкту
+                            'manager': request.user  # Those who is approving is become the projects manager
                         }
                     )
-                    project.members.add(batch.user)  # Додаємо інженера до проєкту
+                    project.members.add(batch.user)  # Add engineer to the project
                     project_map[sp.ms_project_name] = project
 
-                # 2. СТВОРЕННЯ ТАСОК ТА ГОДИН
+                # 2. Create Tasks and Time logs
                 for log in batch.staged_logs.all():
                     project = project_map.get(log.ms_project_name)
                     if not project:
                         continue
 
-                    # Шукаємо або створюємо таску
+                    # Searching for existing task or create new
                     task, created = Task.objects.get_or_create(
                         title=log.ms_task_name,
                         project=project,
                         defaults={
-                            'budget_hours': 0,  # Для імпортованих ставимо 0, менеджер потім поправить
+                            'budget_hours': 0,  # For imported tasks set budget = 0, usually it is history data that closed
                             'status': 'IN_PROGRESS'
                         }
                     )
                     task.assignees.add(batch.user)
 
-                    # Визначаємо тиждень
+                    # define year and week
                     year, week, _ = log.date.isocalendar()
 
-                    # Шукаємо або створюємо таймшит
+                    # Looking for existing timesheet or create new
                     ts, created = WeeklyTimesheet.objects.get_or_create(
                         user=batch.user,
                         year=year,
                         week_number=week,
                         defaults={'status': WeeklyTimesheet.Status.APPROVED}
                     )
-                    # Якщо таймшит уже існував (Draft/Submitted), робимо його Approved
+                    # If timesheet already existed (Draft/Submitted), make it Approved
                     ts.status = WeeklyTimesheet.Status.APPROVED
                     ts.save()
 
-                    # Переносимо години
+                    # Transfer logged hours
                     TimeLog.objects.update_or_create(
                         user=batch.user,
                         task=task,
@@ -166,13 +166,13 @@ def approve_import(request, batch_id):
                         }
                     )
 
-                # 3. ЗАКРИВАЄМО ІМПОРТ
+                # 3. Close Imported tasks by APPROVE
                 batch.status = ImportBatch.Status.APPROVED
                 batch.save()
                 messages.success(request,
-                                 f"Імпорт для {batch.user.username} успішно затверджено! Всі дані перенесено в основну базу.")
+                                 f"Import for {batch.user.username} successfully done! All data transferred to main database.")
 
         except Exception as e:
-            messages.error(request, f"Помилка під час затвердження: {str(e)}")
+            messages.error(request, f"Error during approval: {str(e)}")
 
         return redirect('msproject_import:pending')
