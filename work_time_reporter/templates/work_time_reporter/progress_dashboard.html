@@ -1,91 +1,159 @@
 {% extends 'work_time_reporter/base.html' %}
 
 {% block content %}
-<div class="mb-8 flex justify-between items-end">
-    <div>
-        <h1 class="text-3xl font-extrabold text-gray-900">Yearly Progress Board</h1>
-        <p class="text-gray-500 mt-1">Track budget utilization and deadlines for your active tasks.</p>
-    </div>
-    
-    <div class="flex items-center space-x-4 bg-white px-4 py-2 rounded-lg border border-gray-200 shadow-sm">
-        <a href="{% url 'work_time_reporter:progress_dashboard' year|add:'-1' %}" class="text-gray-500 hover:text-indigo-600 transition">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-        </a>
-        <span class="text-xl font-bold text-gray-800">{{ year }}</span>
-        <a href="{% url 'work_time_reporter:progress_dashboard' year|add:'1' %}" class="text-gray-500 hover:text-indigo-600 transition">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-        </a>
-    </div>
-</div>
-
-<div class="space-y-6">
-    {% for project, rows in grid_data.items %}
-    <div class="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
-        
-        <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-            <h2 class="text-lg font-bold text-gray-800 flex items-center">
-                📂 {{ project.name }}
-                {% if not project.is_active %}
-                    <span class="ml-3 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-600">Closed</span>
-                {% endif %}
-            </h2>
+<div class="mb-10">
+    {% if year_status == 'past' %}
+        <div class="bg-gray-100 border-l-4 border-gray-500 rounded-r-xl shadow-sm p-6 flex items-start">
+            <div class="text-3xl mr-4">📁</div>
+            <div>
+                <h2 class="text-xl font-bold text-gray-800">Historical Archive</h2>
+                <p class="text-gray-600 mt-1">The year <strong>{{ year }}</strong> is closed. Integral progress is only tracked for active current projects. Below you can find the final statistics and logged hours for individual tasks.</p>
+            </div>
         </div>
 
-        <div class="divide-y divide-gray-100">
-            {% for row in rows %}
-            <div class="px-6 py-5 hover:bg-gray-50 transition-colors">
-                
-                <div class="flex justify-between items-start mb-4">
-                    <h3 class="text-md font-semibold text-gray-900 w-1/3 pr-4 truncate" title="{{ row.task.title }}">
-                        {{ row.task.title }}
-                    </h3>
-                    
-                    <div class="w-2/3 grid grid-cols-2 gap-8">
-                        <div class="flex justify-between text-xs text-gray-500 font-medium">
-                            <span>🚀 Start: {{ row.start_date|date:"d M" }}</span>
-                            <span class="{% if row.is_past_deadline %}text-red-600 font-bold{% endif %}">
-                                🏁 Deadline: {{ row.deadline|date:"d M" }}
-                            </span>
-                        </div>
-                        
-                        <div class="flex justify-between text-xs font-medium {% if row.overbudget %}text-red-600{% else %}text-gray-500{% endif %}">
-                            <span>Spent: <strong class="text-gray-900">{{ row.spent|floatformat:1 }}h</strong></span>
-                            <span>Budget: {{ row.budget|floatformat:1 }}h</span>
-                        </div>
+    {% elif year_status == 'future' %}
+        <div class="bg-blue-50 border-l-4 border-blue-400 rounded-r-xl shadow-sm p-6 flex items-start">
+            <div class="text-3xl mr-4">🔭</div>
+            <div>
+                <h2 class="text-xl font-bold text-blue-900">Future Planning</h2>
+                <p class="text-blue-700 mt-1">The year <strong>{{ year }}</strong> has not started yet. Progress tracking will become available when the year begins.</p>
+            </div>
+        </div>
+
+    {% else %}
+        <div class="mb-8 flex justify-between items-end">
+            <div>
+                <h1 class="text-3xl font-extrabold text-gray-900">Yearly Progress Board</h1>
+            </div>
+
+            <div class="flex items-center space-x-4 bg-white px-4 py-2 rounded-lg border border-gray-200 shadow-sm">
+                <a href="{% url 'work_time_reporter:progress_dashboard' year|add:'-1' %}" class="text-gray-500 hover:text-indigo-600 transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                </a>
+                <span class="text-xl font-bold text-gray-800">{{ year }}</span>
+                <a href="{% url 'work_time_reporter:progress_dashboard' year|add:'1' %}" class="text-gray-500 hover:text-indigo-600 transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                </a>
+            </div>
+        </div>
+        <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+            <span class="mr-2">📊</span> Integral Project Performance (Commercial & Internal)
+        </h2>
+        <div class="grid grid-cols-1 gap-4">
+            {% for item in integral_data %}
+            <div class="bg-white p-6 rounded-xl border-2 border-gray-100 shadow-sm">
+                <div class="flex flex-col md:flex-row md:items-center justify-between mb-4">
+                    <div class="mb-2 md:mb-0">
+                        <span class="text-xs font-bold uppercase tracking-wider text-indigo-500">{{ item.project.get_project_type_display }}</span>
+                        <h3 class="text-lg font-extrabold text-gray-900">{{ item.project.name }}</h3>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-sm font-medium {% if item.is_overbudget %}text-red-600{% else %}text-gray-500{% endif %}">
+                            Total Spent: <strong>{{ item.spent|floatformat:1 }}</strong> / {{ item.budget|floatformat:1 }}h
+                        </span>
                     </div>
                 </div>
 
-                <div class="flex justify-between items-center w-full">
-                    <div class="w-1/3"></div>
-                    
-                    <div class="w-2/3 grid grid-cols-2 gap-8">
-                        
-                        <div class="relative w-full h-2.5 bg-gray-200 rounded-full overflow-visible flex items-center">
-                            <div class="h-full bg-blue-400 rounded-full" style="width: {{ row.time_pct }}%"></div>
-                            
-                            <div class="absolute w-3 h-5 bg-white border-2 border-blue-600 rounded shadow" 
-                                 style="left: calc({{ row.time_pct }}% - 6px);" 
-                                 title="Today">
-                            </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                        <div class="flex justify-between text-xs mb-1 text-gray-400 font-medium">
+                            <span>Project Timeline</span>
+                            <span>{{ item.time_pct|floatformat:0 }}%</span>
                         </div>
+                        <div class="relative w-full h-3 bg-gray-100 rounded-full">
+                            <div class="h-full bg-blue-500 rounded-full" style="width: {{ item.time_pct }}%"></div>
+                        </div>
+                    </div>
 
-                        <div class="relative w-full h-2.5 bg-gray-200 rounded-full overflow-hidden">
-                            <div class="h-full rounded-full transition-all duration-500 {% if row.overbudget %}bg-red-500{% else %}bg-green-500{% endif %}" 
-                                 style="width: {{ row.budget_pct }}%">
-                            </div>
+                    <div>
+                        <div class="flex justify-between text-xs mb-1 text-gray-400 font-medium">
+                            <span>Budget Utilization</span>
+                            <span>{{ item.budget_pct|floatformat:0 }}%</span>
                         </div>
-                        
+                        <div class="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
+                            <div class="h-full {% if item.is_overbudget %}bg-red-500{% else %}bg-green-500{% endif %} rounded-full" style="width: {{ item.budget_pct }}%"></div>
+                        </div>
                     </div>
                 </div>
-
             </div>
             {% endfor %}
         </div>
     </div>
-    {% empty %}
-    <div class="text-center py-12 bg-white rounded-xl shadow-sm border border-gray-200">
-        <p class="text-gray-500 text-lg">No active projects or logged hours found for {{ year }}.</p>
+
+    <hr class="border-gray-200 mb-10">
+    <div>
+        <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">Track budget utilization and deadlines for your active tasks.</h2>
     </div>
-    {% endfor %}
+
+    <div class="space-y-6">
+        {% for project, rows in grid_data.items %}
+        <div class="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
+
+            <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                <h2 class="text-lg font-bold text-gray-800 flex items-center">
+                    📂 {{ project.name }}
+                    {% if not project.is_active %}
+                        <span class="ml-3 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-600">Closed</span>
+                    {% endif %}
+                </h2>
+            </div>
+
+            <div class="divide-y divide-gray-100">
+                {% for row in rows %}
+                <div class="px-6 py-5 hover:bg-gray-50 transition-colors">
+
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="text-md font-semibold text-gray-900 w-1/3 pr-4 truncate" title="{{ row.task.title }}">
+                            {{ row.task.title }}
+                        </h3>
+
+                        <div class="w-2/3 grid grid-cols-2 gap-8">
+                            <div class="flex justify-between text-xs text-gray-500 font-medium">
+                                <span>🚀 Start: {{ row.start_date|date:"d M" }}</span>
+                                <span class="{% if row.is_past_deadline %}text-red-600 font-bold{% endif %}">
+                                    🏁 Deadline: {{ row.deadline|date:"d M" }}
+                                </span>
+                            </div>
+
+                            <div class="flex justify-between text-xs font-medium {% if row.overbudget %}text-red-600{% else %}text-gray-500{% endif %}">
+                                <span>Spent: <strong class="text-gray-900">{{ row.spent|floatformat:1 }}h</strong></span>
+                                <span>Budget: {{ row.budget|floatformat:1 }}h</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center w-full">
+                        <div class="w-1/3"></div>
+
+                        <div class="w-2/3 grid grid-cols-2 gap-8">
+
+                            <div class="relative w-full h-2.5 bg-gray-200 rounded-full overflow-visible flex items-center">
+                                <div class="h-full bg-blue-400 rounded-full" style="width: {{ row.time_pct }}%"></div>
+
+                                <div class="absolute w-3 h-5 bg-white border-2 border-blue-600 rounded shadow"
+                                     style="left: calc({{ row.time_pct }}% - 6px);"
+                                     title="Today">
+                                </div>
+                            </div>
+
+                            <div class="relative w-full h-2.5 bg-gray-200 rounded-full overflow-hidden">
+                                <div class="h-full rounded-full transition-all duration-500 {% if row.overbudget %}bg-red-500{% else %}bg-green-500{% endif %}"
+                                     style="width: {{ row.budget_pct }}%">
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-center py-12 bg-white rounded-xl shadow-sm border border-gray-200">
+            <p class="text-gray-500 text-lg">No active projects or logged hours found for {{ year }}.</p>
+        </div>
+        {% endfor %}
+    {% endif %}
 </div>
 {% endblock %}
