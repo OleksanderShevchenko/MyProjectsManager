@@ -152,7 +152,11 @@ def dashboard(request, year: int = None, week: int = None):
     log_dict = {(log.task_id, log.date): log for log in logs}
 
     # Assembling the final "matrix" for the HTML template
-    grid_data = []
+    grid_data = {}
+
+    daily_totals = [0] * 7
+    weekly_total = 0
+
     for task in tasks:
         days_data = []
         row_total = 0  # variable for summing up hours per project/task
@@ -177,9 +181,14 @@ def dashboard(request, year: int = None, week: int = None):
         if timesheet.status != 'DRAFT' and row_total == 0:
             continue
 
-        grid_data.append({
+        # New grouping by project
+        if task.project not in grid_data:
+            grid_data[task.project] = []
+
+        grid_data[task.project].append({
             'task': task,
-            'days': days_data
+            'days': days_data,
+            'row_total': row_total
         })
 
     context = {
