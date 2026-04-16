@@ -74,61 +74,68 @@
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
                 <!-- Render weekly table here--->
-                {% for row in grid_data %}
-                <!---  First column with name of project/tasks --->
-                <tr class="hover:bg-gray-50 transition-colors task-row">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 bg-white sticky left-0 z-10 shadow-[1px_0_0_0_#e5e7eb]">
-                        <div class="flex justify-between items-center group/task">
-                            <span title="{{ row.task.title }}" class="truncate max-w-[200px]">
-                                <span class="text-gray-500 font-normal">{{ row.task.project.name }}</span><br>
-                                {{ row.task.title }}
-                            </span>
-                            <!--- Button to hide task (when it is not reported on current week) --->
-                            <button type="button"
-                                    class="hide-task-btn text-gray-300 hover:text-red-500 opacity-0 group-hover/task:opacity-100 transition-opacity ml-2 focus:outline-none"
-                                    data-task-id="{{ row.task.id }}"
-                                    title="Hide this task for the current week">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path></svg>
-                            </button>
-                        </div>
-                    </td>
-                    <!--- week days columns --->
-                    {% for day in row.days %}
-                    <td class="p-1 relative group">
-                        <input type="number"
-                               name="hours_{{ row.task.id }}_{{ day.date|date:'Y-m-d' }}"
-                               value="{{ day.hours }}"
-                               step="0.5" min="0" max="24"
-                               {% if timesheet.status != 'DRAFT' or not row.task.project.is_active %}disabled{% endif %}
-                               class="w-full h-10 px-2 text-center border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-gray-900 rounded-md day-input transition-colors {% if day.comment %}bg-blue-50 border-blue-300{% else %}bg-white hover:bg-gray-50{% endif %} {% if not row.task.project.is_active %}bg-gray-100 text-gray-500 cursor-not-allowed{% endif %}"
-                               data-task-id="{{ row.task.id }}"
-                               data-date="{{ day.date|date:'Y-m-d' }}"
-                               title="{% if not row.task.project.is_active %}This project is closed{% else %}Double-click to add/edit work details{% endif %}">
+                {% for project, rows in grid_data.items %}
+                    <!--- Grouping same project's tasks together --->
+                    <tr class="bg-gray-100 border-y border-gray-300">
+                        <td colspan="9" class="px-6 py-2 text-xs font-extrabold text-gray-700 uppercase tracking-wider sticky left-0 z-20 shadow-[1px_0_0_0_#e5e7eb]">
+                            📂 {{ project.name }}
+                        </td>
+                    </tr>
+                    {% for row in rows %}
+                        <!---  First column with name of tasks --->
+                        <tr class="task-row hover:bg-gray-50 transition-colors group">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 bg-white sticky left-0 z-10 shadow-[1px_0_0_0_#e5e7eb] pl-10">
+                                <div class="flex justify-between items-center group/task">
+                                    <span title="{{ row.task.title }}" class="truncate max-w-[250px] text-gray-600">
+                                        <span class="text-gray-400 mr-1">└</span> {{ row.task.title }}
+                                    </span>
 
-                        <input type="hidden"
-                               name="comment_{{ row.task.id }}_{{ day.date|date:'Y-m-d' }}"
-                               id="comment_{{ row.task.id }}_{{ day.date|date:'Y-m-d' }}"
-                               value="{{ day.comment }}">
+                                    <button type="button"
+                                            class="hide-task-btn text-gray-300 hover:text-red-500 opacity-0 group-hover/task:opacity-100 transition-opacity ml-2 focus:outline-none"
+                                            data-task-id="{{ row.task.id }}"
+                                            title="Hide this task for the current week">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path></svg>
+                                    </button>
+                                </div>
+                            </td>
+                            <!--- week days columns --->
+                            {% for day in row.days %}
+                            <td class="p-1 relative group">
+                                <input type="number"
+                                       name="hours_{{ row.task.id }}_{{ day.date|date:'Y-m-d' }}"
+                                       value="{{ day.hours }}"
+                                       step="0.5" min="0" max="24"
+                                       {% if timesheet.status != 'DRAFT' or not row.task.project.is_active %}disabled{% endif %}
+                                       class="w-full h-10 px-2 text-center border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-gray-900 rounded-md day-input transition-colors {% if day.comment %}bg-blue-50 border-blue-300{% else %}bg-white hover:bg-gray-50{% endif %} {% if not row.task.project.is_active %}bg-gray-100 text-gray-500 cursor-not-allowed{% endif %}"
+                                       data-task-id="{{ row.task.id }}"
+                                       data-date="{{ day.date|date:'Y-m-d' }}"
+                                       title="{% if not row.task.project.is_active %}This project is closed{% else %}Double-click to add/edit work details{% endif %}">
 
-                        <div id="indicator_{{ row.task.id }}_{{ day.date|date:'Y-m-d' }}"
-                             class="absolute top-1 right-1 pointer-events-none {% if not day.comment %}hidden{% endif %}"
-                             style="width: 0; height: 0; border-top: 10px solid #3b82f6; border-left: 10px solid transparent;">
-                        </div>
-                    </td>
+                                <input type="hidden"
+                                       name="comment_{{ row.task.id }}_{{ day.date|date:'Y-m-d' }}"
+                                       id="comment_{{ row.task.id }}_{{ day.date|date:'Y-m-d' }}"
+                                       value="{{ day.comment }}">
+
+                                <div id="indicator_{{ row.task.id }}_{{ day.date|date:'Y-m-d' }}"
+                                     class="absolute top-1 right-1 pointer-events-none {% if not day.comment %}hidden{% endif %}"
+                                     style="width: 0; height: 0; border-top: 10px solid #3b82f6; border-left: 10px solid transparent;">
+                                </div>
+                            </td>
+                            {% endfor %}
+
+                            <td class="p-2 text-center font-bold text-gray-900 bg-gray-50 row-total">
+                                {{ row.row_total|floatformat:1 }}
+                            </td>
+                        </tr>
                     {% endfor %}
-
-                    <td class="px-4 py-4 text-center bg-gray-50 font-semibold text-gray-700 row-total">
-                        0.0
-                    </td>
-                </tr>
                 {% empty %}
                 <tr>
                     <td colspan="9" class="px-6 py-8 text-center text-gray-500">
                         You don't have any assigned tasks for this week.
                     </td>
                 </tr>
-                {% endfor %}
 
+                {% endfor %}
                 <tr class="bg-gray-100 border-t-2 border-gray-300 font-bold text-gray-700">
                     <td class="px-6 py-4 text-right uppercase text-xs tracking-wider">
                         Daily Totals:
