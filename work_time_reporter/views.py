@@ -4,8 +4,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from django.db.models import Sum
-from django.db.models import Q
+from django.db.models import Sum, Min, Q
 from django.urls import reverse
 from django.utils import timezone
 
@@ -395,3 +394,78 @@ def yearly_dashboard(request, year=None):
         'total_analyzed': float(comm_hours + non_comm_hours)
     }
     return render(request, 'work_time_reporter/yearly_dashboard.html', context)
+
+
+@login_required(login_url='work_time_reporter:login')
+def progress_dashboard(request, year=None):
+    """
+    This dashboard view allows to show full year picture about spending time on each task
+    and where it towards the deadline
+    """
+    if not year:
+        year = datetime.datetime.now().year
+
+    # 1. Fetch tasks and dynamically calculate spent hours and the first log date (Start Date)
+    # Using Django's annotate() makes the database do the heavy lifting, making it blazing fast.
+    tasks = Task.objects.filter(
+        assignees=request.user
+    ).annotate(
+        # Sum of hours logged for this specific year
+        spent_hours=Sum('time_logs__hours', filter=Q(time_logs__date__year=year)),
+        # Earliest date any hours were logged (acts as our dynamic Start Date)
+        start_date=Min('time_logs__date', filter=Q(time_logs__date__year=year))
+    ).select_related('project')
+
+    # Filter out empty/closed tasks that have no activity this year
+    tasks = tasks.filter(Q(project__is_active=True) | Q(spent_hours__gt=0)).distinct()
+
+    grid_data = {}
+    today = datetime.date.today()
+
+    # 2. Process and group data by Project
+    for task in tasks:
+        if task.project not in grid_data:
+            grid_data[task.project] = []
+
+        spent = float(task.spent_hours) if task.spent_hours else 0.0
+        budget = float(task.budget_hours) if task.budget_hours else 0.0
+
+        # Budget Progress Calculation
+        if budget > 0:
+            budget_pct = min(100, (spent / budget) * 100)
+            overbudget = spent > budget
+        else:
+            budget_pct = 100 if spent > 0 else 0
+            overbudget = spent > 0
+
+        # Timeline Calculation
+        # Default start: First logged day OR Jan 1st
+        start = task.start_date or datetime.date(year, 1, 1)
+        # Default deadline: Task deadline OR Dec 31st
+        deadline = task.deadline or datetime.date(year, 12, 31)
+
+        total_days = (deadline - start).days
+        if total_days <= 0: total_days = 1 # Prevent division by zero
+
+        days_passed = (today - start).days
+        # Clamp timeline percentage between 0 and 100
+        time_pct = max(0, min(100, (days_passed / total_days) * 100))
+
+        grid_data[task.project].append({
+            'task': task,
+            'spent': spent,
+            'budget': budget,
+            'budget_pct': budget_pct,
+            'overbudget': overbudget,
+            'start_date': start,
+            'deadline': deadline,
+            'time_pct': time_pct,
+            'is_past_deadline': today > deadline,
+        })
+
+    context = {
+        'year': year,
+        'grid_data': grid_data,
+        'today': today,
+    }
+    return render(request, 'work_time_reporter/progress_dashboard.html', context)
