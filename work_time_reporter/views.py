@@ -4,7 +4,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from django.db.models import Sum, Min, Q
+from django.db.models import Sum, Min, Q, Max
 from django.urls import reverse
 from django.utils import timezone
 
@@ -402,8 +402,56 @@ def progress_dashboard(request, year=None):
     This dashboard view allows to show full year picture about spending time on each task
     and where it towards the deadline
     """
+    # 1. Determine the status of the requested year
+    current_year = datetime.datetime.now().year
+
     if not year:
-        year = datetime.datetime.now().year
+        year = current_year
+
+    if year < current_year:
+        year_status = 'past'
+    elif year > current_year:
+        year_status = 'future'
+    else:
+        year_status = 'current'
+
+    integral_data = []
+
+    # 2. Only calculate Integral Progress if we are looking at the CURRENT year
+    if year_status == 'current':
+        project_summary = Project.objects.filter(
+            Q(is_active=True) & ~Q(project_type='ADMINISTRATIVE') & Q(tasks__assignees=request.user)
+        ).annotate(
+            total_budget=Sum('tasks__budget_hours', filter=Q(tasks__assignees=request.user)),
+            total_spent=Sum('tasks__time_logs__hours',
+                            filter=Q(tasks__time_logs__date__year=year, tasks__time_logs__user=request.user)),
+            project_start=Min('tasks__time_logs__date',
+                              filter=Q(tasks__time_logs__date__year=year, tasks__time_logs__user=request.user)),
+            project_deadline=Max('tasks__deadline', filter=Q(tasks__assignees=request.user))
+        ).filter(total_spent__gt=0).distinct().order_by('project_type', 'name')
+
+        today = datetime.date.today()
+
+        for proj in project_summary:
+            spent = float(proj.total_spent or 0)
+            budget = float(proj.total_budget or 0)
+
+            budget_pct = min(100, (spent / budget * 100)) if budget > 0 else 0
+            start = proj.project_start or datetime.date(year, 1, 1)
+            deadline = proj.project_deadline or datetime.date(year, 12, 31)
+
+            total_days = (deadline - start).days or 1
+            days_passed = (today - start).days
+            time_pct = max(0, min(100, (days_passed / total_days * 100)))
+
+            integral_data.append({
+                'project': proj,
+                'budget_pct': budget_pct,
+                'time_pct': time_pct,
+                'spent': spent,
+                'budget': budget,
+                'is_overbudget': spent > budget
+            })
 
     # 1. Fetch tasks and dynamically calculate spent hours and the first log date (Start Date)
     # Using Django's annotate() makes the database do the heavy lifting, making it blazing fast.
@@ -486,6 +534,8 @@ def progress_dashboard(request, year=None):
         # 3. Pass the SORTED dictionary to the template context
         context = {
             'year': year,
+            'year_status': year_status,
+            'integral_data': integral_data,
             'grid_data': sorted_grid_data,  # <-- Make sure to use sorted_grid_data here!
             'today': today,
         }
