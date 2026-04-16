@@ -22,4 +22,8 @@ urlpatterns = [
     path('', views.dashboard, name='dashboard'),
     path('<int:year>/<int:week>/', views.dashboard, name='dashboard_week'),
 
+    # year's tasks progress dashboard
+    path('progress/<int:year>/', views.progress_dashboard, name='progress_dashboard'),
+    path('progress/', views.progress_dashboard, name='progress_dashboard_current'),
+
 ]
