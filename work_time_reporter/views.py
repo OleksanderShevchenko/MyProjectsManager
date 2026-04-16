@@ -407,11 +407,12 @@ def progress_dashboard(request, year=None):
 
     # 1. Fetch tasks and dynamically calculate spent hours and the first log date (Start Date)
     # Using Django's annotate() makes the database do the heavy lifting, making it blazing fast.
+    # namely it creates for us virtual fields 'spent_hours' and 'start_date' that are useful for progress dashboard
     tasks = Task.objects.filter(
         assignees=request.user
     ).annotate(
-        # Sum of hours logged for this specific year
-        spent_hours=Sum('time_logs__hours', filter=Q(time_logs__date__year=year)),
+        # Sum of hours logged for this specific year for each task and save it as new field 'spent_hours'
+        spent_hours=Sum('time_logs__hours', filter=Q(time_logs__date__year=year)),  # Django ORM "magic"
         # Earliest date any hours were logged (acts as our dynamic Start Date)
         start_date=Min('time_logs__date', filter=Q(time_logs__date__year=year))
     ).select_related('project')
@@ -463,9 +464,29 @@ def progress_dashboard(request, year=None):
             'is_past_deadline': today > deadline,
         })
 
-    context = {
-        'year': year,
-        'grid_data': grid_data,
-        'today': today,
-    }
+        # --- CUSTOM SORTING LOGIC ---
+        # Display in dashboard commercial task the first then administrative and finally internal/non-commercial
+        # 1. Define priority map for project types
+        def get_project_priority(project):
+            priority_map = {
+                'COMMERCIAL': 1,
+                'ADMINISTRATIVE': 2,
+                'INTERNAL': 3
+            }
+            # Return the priority number (default to 4 if type is unknown/None)
+            return priority_map.get(project.project_type, 4)
+
+        # 2. Sort the grid_data dictionary
+        # We sort by our custom priority first, and then alphabetically by project name
+        sorted_grid_data = dict(sorted(
+            grid_data.items(),
+            key=lambda item: (get_project_priority(item[0]), item[0].name)
+        ))
+
+        # 3. Pass the SORTED dictionary to the template context
+        context = {
+            'year': year,
+            'grid_data': sorted_grid_data,  # <-- Make sure to use sorted_grid_data here!
+            'today': today,
+        }
     return render(request, 'work_time_reporter/progress_dashboard.html', context)
