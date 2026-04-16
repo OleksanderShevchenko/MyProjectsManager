@@ -24,6 +24,7 @@
                         <a href="{% url 'work_time_reporter:dashboard' %}" class="text-indigo-100 hover:bg-indigo-800 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition">My Timesheet</a>
                         <a href="{% url 'work_time_reporter:yearly_dashboard' %}" class="text-indigo-100 hover:bg-indigo-800 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition">Yearly Overview</a>
                         <a href="{% url 'msproject_import:start' %}" class="text-indigo-100 hover:bg-indigo-800 px-3 py-2 rounded-md text-sm font-medium">Import PWA</a>
+                        <a href="{% url 'work_time_reporter:progress_dashboard_current' %}" class="text-indigo-100 hover:bg-indigo-800 px-3 py-2 rounded-md text-sm font-medium">Progress Tracker</a>
                         {% if request.user.managed_projects.exists %}
                             <a href="{% url 'work_time_reporter:team_approvals' %}" class="text-white bg-indigo-800 hover:bg-indigo-700 px-3 py-2 rounded-md text-sm font-medium transition shadow-inner">Team Approvals</a>
                         {% endif %}
