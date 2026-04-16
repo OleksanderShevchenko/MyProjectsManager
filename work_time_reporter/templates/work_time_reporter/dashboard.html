@@ -296,8 +296,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Standard browser magic to warn about closing a tab
     window.addEventListener('beforeunload', function (e) {
         if (isDirty) {
+            // The modern standard way to trigger the confirmation dialog
             e.preventDefault();
-            e.returnValue = ''; // This will bring up the standard browser confirmation window
+            // This will bring up the old browser confirmation window
+            e.returnValue = '';  // ToDo - remove if don't expect to use in old browser
         }
     });
 
