@@ -116,3 +116,28 @@ class TimeLog(models.Model):
 
     def __str__(self):
         return f"{self.user} - {self.task.title} ({self.hours}h)"
+
+
+class CompanyCalendar(models.Model):
+    """
+    Global calendar to track holidays, short days before state holidays.
+    Managed only by System Administrators.
+    """
+    DAY_TYPE_CHOICES = [
+        ('HOLIDAY', 'Holiday / Non-working day'),
+        ('SHORT_DAY', 'Short Day (7 hours)'),
+        ('FREE_MONDAY', 'Free Monday when state holiday is on weekends'),
+    ]
+
+    date = models.DateField(unique=True, verbose_name="Date")
+    day_type = models.CharField(max_length=20, choices=DAY_TYPE_CHOICES, verbose_name="Type of Day")
+    description = models.CharField(max_length=255, blank=True, null=True, verbose_name="Description (e.g., Christmas)")
+
+    class Meta:
+        verbose_name = "Company Calendar Day"
+        verbose_name_plural = "Company Calendar"
+        ordering = ['date']
+
+    def __str__(self):
+        # Django magic is here - method 'get_day_type_display' generates automatically for day_type field of choices type
+        return f"{self.date} - {self.get_day_type_display()}"
