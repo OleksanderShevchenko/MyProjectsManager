@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Project, Task, TimeLog, WeeklyTimesheet
+from .models import Project, Task, TimeLog, WeeklyTimesheet, CompanyCalendar
 
 
 # Allows you to see and edit logs directly inside the weekly report
@@ -7,6 +7,12 @@ class TimeLogInline(admin.TabularInline):
     model = TimeLog
     extra = 1  # Number of empty lines for new entries
     fields = ('task', 'date', 'hours', 'comment')
+
+
+@admin.register(CompanyCalendar)
+class CompanyCalendarAdmin(admin.ModelAdmin):
+    list_display = ('date', 'day_type', 'description')
+    list_filter = ('day_type',)
 
 
 @admin.register(WeeklyTimesheet)
