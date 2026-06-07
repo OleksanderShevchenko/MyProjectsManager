@@ -26,7 +26,7 @@
                         <a href="{% url 'msproject_import:start' %}" class="text-indigo-100 hover:bg-indigo-800 px-3 py-2 rounded-md text-sm font-medium">Import PWA</a>
                         <a href="{% url 'work_time_reporter:progress_dashboard_current' %}" class="text-indigo-100 hover:bg-indigo-800 px-3 py-2 rounded-md text-sm font-medium">Progress Tracker</a>
                         <a href="{% url 'work_time_reporter:calendar_settings_current' %}" class="text-indigo-100 hover:bg-indigo-800 px-3 py-2 rounded-md text-sm font-medium">Calendar</a>
-                        {% if request.user.managed_projects.exists %}
+                        {% if request.user.is_active_manager %}
                             <a href="{% url 'work_time_reporter:team_approvals' %}" class="text-white bg-indigo-800 hover:bg-indigo-700 px-3 py-2 rounded-md text-sm font-medium transition shadow-inner">Team Approvals</a>
                         {% endif %}
                         {% if user.is_staff %}
