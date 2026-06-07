@@ -51,6 +51,29 @@
     </div>
 </div>
 
+{% if mini_dashboard %}
+<div class="mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    {% for proj in mini_dashboard %}
+    <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4 hover:shadow-md transition-shadow">
+        <div class="flex justify-between items-end mb-2">
+            <h4 class="text-sm font-bold text-gray-800 truncate pr-2" title="{{ proj.name }}">
+                {{ proj.name }}
+            </h4>
+            <span class="text-xs font-medium whitespace-nowrap {% if proj.overbudget %}text-red-600{% else %}text-gray-500{% endif %}">
+                {{ proj.spent|floatformat:1 }} / {{ proj.budget|floatformat:1 }}h
+            </span>
+        </div>
+
+        <div class="w-full bg-gray-100 rounded-full h-2">
+            <div class="h-2 rounded-full transition-all duration-500 {% if proj.overbudget %}bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]{% else %}bg-green-500{% endif %}"
+                 style="width: {{ proj.pct }}%">
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
 <form method="POST" action="" class="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
     {% csrf_token %}
 
