@@ -66,7 +66,7 @@
 
         <div class="w-full bg-gray-100 rounded-full h-2">
             <div class="h-2 rounded-full transition-all duration-500 {% if proj.overbudget %}bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]{% else %}bg-green-500{% endif %}"
-                 style="width: {{ proj.pct }}%">
+                 style="width: {{ proj.pct|floatformat:0 }}%;">
             </div>
         </div>
     </div>
@@ -129,10 +129,14 @@
                                        value="{{ day.hours }}"
                                        step="0.5" min="0" max="24"
                                        {% if timesheet.status != 'DRAFT' or not row.task.project.is_active %}disabled{% endif %}
-                                       class="w-full h-10 px-2 text-center border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-gray-900 rounded-md day-input transition-colors {% if day.comment %}bg-blue-50 border-blue-300{% else %}bg-white hover:bg-gray-50{% endif %} {% if not row.task.project.is_active %}bg-gray-100 text-gray-500 cursor-not-allowed{% endif %}"
+                                       class="w-full h-10 px-2 text-center border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-md day-input transition-colors
+                                              {% if day.comment %}bg-blue-50 border-blue-300 text-gray-900
+                                              {% elif day.is_weekend or day.is_holiday or day.is_free_monday %}bg-gray-100 text-gray-500 shadow-inner
+                                              {% else %}bg-white hover:bg-gray-50 text-gray-900{% endif %}
+                                              {% if not row.task.project.is_active %}bg-gray-100 text-gray-500 cursor-not-allowed{% endif %}"
                                        data-task-id="{{ row.task.id }}"
                                        data-date="{{ day.date|date:'Y-m-d' }}"
-                                       title="{% if not row.task.project.is_active %}This project is closed{% else %}Double-click to add/edit work details{% endif %}">
+                                       title="{% if not row.task.project.is_active %}This project is closed{% elif day.is_short_day %}Short Day (7 hours){% elif day.is_holiday %}Holiday{% elif day.is_free_monday %}Free Monday{% elif day.is_weekend %}Weekend{% else %}Double-click to add/edit work details{% endif %}">
 
                                 <input type="hidden"
                                        name="comment_{{ row.task.id }}_{{ day.date|date:'Y-m-d' }}"
