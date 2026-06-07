@@ -599,7 +599,7 @@ def progress_dashboard(request, year=None):
     return render(request, 'work_time_reporter/progress_dashboard.html', context)
 
 
-@staff_member_required(login_url='work_time_reporter:login')
+@login_required(login_url='work_time_reporter:login')
 def calendar_settings(request, year=None):
     """
     Interactive yearly calendar for admins to set holidays and short days.
