@@ -41,9 +41,9 @@ class WeeklyTimesheetAdmin(admin.ModelAdmin):
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
     # Columns that will be displayed in the project list
-    list_display = ('name', 'project_type', 'year', 'is_active')
+    list_display = ('name', 'project_type', 'manager', 'year', 'is_active')
     # Sidebar with filters (very convenient to search for active projects of the desired year)
-    list_filter = ('project_type', 'is_active', 'year')
+    list_filter = ('project_type', 'is_active', 'year', 'manager')
     # Search field by name
     search_fields = ('name',)
     # add convenient interface for selecting user
