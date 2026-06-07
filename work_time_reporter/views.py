@@ -269,6 +269,11 @@ def team_approvals(request):
 
     # Protection: if a regular engineer comes in - throw him back to his dashboard
     if not managed_projects.exists():
+        messages.warning(request, "Access denied. You are not a manager of any active project.")
+        return redirect('work_time_reporter:dashboard')
+
+    # Protection: if a regular engineer comes in - throw him back to his dashboard
+    if not managed_projects.exists():
         messages.warning(request, "Access denied. You are not a manager of any project.")
         return redirect('work_time_reporter:dashboard')  # with this url it will be re-adrest to current week
 
