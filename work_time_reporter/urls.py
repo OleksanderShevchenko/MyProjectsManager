@@ -26,4 +26,7 @@ urlpatterns = [
     path('progress/<int:year>/', views.progress_dashboard, name='progress_dashboard'),
     path('progress/', views.progress_dashboard, name='progress_dashboard_current'),
 
+    # url for interactive CompanyCalendar dashboard
+    path('settings/calendar/<int:year>/', views.calendar_settings, name='calendar_settings'),
+    path('settings/calendar/', views.calendar_settings, name='calendar_settings_current'),
 ]
