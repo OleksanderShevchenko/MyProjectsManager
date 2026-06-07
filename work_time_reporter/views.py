@@ -293,7 +293,7 @@ def team_approvals(request):
         return redirect('work_time_reporter:team_approvals')
 
     # We are looking for all subordinates in the manager's projects
-    managed_users = User.objects.filter(assigned_projects__in=managed_projects).distinct()
+    managed_users = User.objects.filter(assigned_projects__in=managed_projects).exclude(id=request.user.id).distinct()
 
     # We are looking for reports with the status SUBMITTED from these subordinates
     pending_timesheets = WeeklyTimesheet.objects.filter(
