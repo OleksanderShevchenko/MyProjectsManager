@@ -1,10 +1,14 @@
+import calendar
 import datetime
+import json
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
+from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum, Min, Q, Max
+from django.http import JsonResponse
 from django.urls import reverse
 from django.utils import timezone
 
@@ -593,3 +597,70 @@ def progress_dashboard(request, year=None):
             'today': today,
         }
     return render(request, 'work_time_reporter/progress_dashboard.html', context)
+
+
+@staff_member_required(login_url='work_time_reporter:login')
+def calendar_settings(request, year=None):
+    """
+    Interactive yearly calendar for admins to set holidays and short days.
+    """
+    if not year:
+        year = datetime.datetime.now().year
+
+    # --- AJAX HANDLER FOR CLICKING A DAY ---
+    if request.method == 'POST' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        data = json.loads(request.body)
+        date_str = data.get('date')
+        new_type = data.get('type')  # 'HOLIDAY', 'SHORT_DAY', 'FREE_MONDAY', or 'CLEAR'
+
+        try:
+            target_date = datetime.datetime.strptime(date_str, '%Y-%m-%d').date()
+            if new_type == 'CLEAR':
+                CompanyCalendar.objects.filter(date=target_date).delete()
+            else:
+                CompanyCalendar.objects.update_or_create(
+                    date=target_date,
+                    defaults={'day_type': new_type}
+                )
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+    # --- RENDER THE CALENDAR PAGE ---
+    # Get all customized days for the requested year
+    custom_days = CompanyCalendar.objects.filter(date__year=year).in_bulk(field_name='date')
+
+    cal = calendar.Calendar(firstweekday=0)  # 0 = Monday
+    months_data = []
+
+    for month in range(1, 13):
+        weeks = cal.monthdatescalendar(year, month)
+        month_weeks = []
+        for week in weeks:
+            week_days = []
+            for day in week:
+                # We only show days belonging to the current month in this month's grid
+                if day.month == month:
+                    day_type = custom_days[day].day_type if day in custom_days else None
+                    is_weekend = day.weekday() >= 5
+                    week_days.append({
+                        'date': day,
+                        'day_num': day.day,
+                        'is_weekend': is_weekend,
+                        'day_type': day_type
+                    })
+                else:
+                    week_days.append(None)  # Empty cell for padding
+            month_weeks.append(week_days)
+
+        months_data.append({
+            'name': calendar.month_name[month],
+            'weeks': month_weeks
+        })
+
+    context = {
+        'year': year,
+        'months_data': months_data,
+        'types': CompanyCalendar.DAY_TYPE_CHOICES
+    }
+    return render(request, 'work_time_reporter/calendar_settings.html', context)

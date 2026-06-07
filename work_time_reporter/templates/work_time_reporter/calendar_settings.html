@@ -1,0 +1,110 @@
+{% extends 'work_time_reporter/base.html' %}
+
+{% block content %}
+<div class="mb-8 flex justify-between items-end">
+    <div>
+        <h1 class="text-3xl font-extrabold text-gray-900">Company Calendar Settings</h1>
+        <p class="text-gray-500 mt-1">Click on any day to toggle its status: Standard ➔ Holiday ➔ Short Day ➔ Free Monday</p>
+    </div>
+    
+    <div class="flex items-center space-x-4 bg-white px-4 py-2 rounded-lg border border-gray-200 shadow-sm">
+        <a href="{% url 'work_time_reporter:calendar_settings' year|add:'-1' %}" class="text-gray-500 hover:text-indigo-600">◀</a>
+        <span class="text-xl font-bold text-gray-800">{{ year }}</span>
+        <a href="{% url 'work_time_reporter:calendar_settings' year|add:'1' %}" class="text-gray-500 hover:text-indigo-600">▶</a>
+    </div>
+</div>
+
+<div class="mb-6 flex space-x-4 text-sm font-medium">
+    <div class="flex items-center"><span class="w-4 h-4 bg-red-100 border border-red-300 rounded mr-2"></span> Holiday (HOLIDAY)</div>
+    <div class="flex items-center"><span class="w-4 h-4 bg-orange-100 border border-orange-300 rounded mr-2"></span> Short Day (SHORT_DAY)</div>
+    <div class="flex items-center"><span class="w-4 h-4 bg-purple-100 border border-purple-300 rounded mr-2"></span> Free Monday (FREE_MONDAY)</div>
+    <div class="flex items-center"><span class="w-4 h-4 bg-gray-100 border border-gray-300 rounded mr-2"></span> Standard Weekend</div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+    {% for month in months_data %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="bg-gray-50 px-4 py-2 text-center font-bold text-gray-800 border-b border-gray-200">
+            {{ month.name }}
+        </div>
+        <div class="p-4">
+            <div class="grid grid-cols-7 text-xs text-center font-semibold text-gray-400 mb-2">
+                <div>Mo</div><div>Tu</div><div>We</div><div>Th</div><div>Fr</div><div>Sa</div><div>Su</div>
+            </div>
+            
+            <div class="grid grid-cols-7 gap-1 text-sm text-center">
+                {% for week in month.weeks %}
+                    {% for day in week %}
+                        {% if day %}
+                            <button type="button" 
+                                    class="w-8 h-8 rounded flex items-center justify-center transition-colors focus:outline-none border day-btn
+                                    {% if day.day_type == 'HOLIDAY' %} bg-red-100 text-red-800 border-red-300 font-bold
+                                    {% elif day.day_type == 'SHORT_DAY' %} bg-orange-100 text-orange-800 border-orange-300 font-bold
+                                    {% elif day.day_type == 'FREE_MONDAY' %} bg-purple-100 text-purple-800 border-purple-300 font-bold
+                                    {% elif day.is_weekend %} bg-gray-100 text-gray-500 border-transparent
+                                    {% else %} bg-white text-gray-700 border-transparent hover:bg-gray-100 {% endif %}"
+                                    data-date="{{ day.date|date:'Y-m-d' }}"
+                                    data-current-type="{{ day.day_type|default:'NONE' }}">
+                                {{ day.day_num }}
+                            </button>
+                        {% else %}
+                            <div class="w-8 h-8"></div>
+                        {% endif %}
+                    {% endfor %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<form>
+    {% csrf_token %}
+</form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    
+    // Cycle logic: Standard -> HOLIDAY -> SHORT_DAY -> FREE_MONDAY -> Standard
+    const nextType = {
+        'NONE': 'HOLIDAY',
+        'HOLIDAY': 'SHORT_DAY',
+        'SHORT_DAY': 'FREE_MONDAY',
+        'FREE_MONDAY': 'CLEAR'
+    };
+
+    document.querySelectorAll('.day-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const dateStr = this.dataset.date;
+            const currentType = this.dataset.currentType;
+            const newType = nextType[currentType];
+            
+            // Visual feedback immediately
+            this.style.opacity = '0.5';
+
+            fetch(window.location.href, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': csrftoken
+                },
+                body: JSON.stringify({
+                    'date': dateStr,
+                    'type': newType
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if(data.status === 'success') {
+                    // Reload page to reflect new colors cleanly
+                    // (For a production app you'd just swap CSS classes, but reload is 100% reliable here)
+                    window.location.reload(); 
+                }
+            });
+        });
+    });
+});
+</script>
+{% endblock %}
