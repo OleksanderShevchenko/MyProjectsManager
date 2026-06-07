@@ -8,7 +8,7 @@ from django.db.models import Sum, Min, Q, Max
 from django.urls import reverse
 from django.utils import timezone
 
-from .models import Task, WeeklyTimesheet, TimeLog, Project
+from .models import Task, WeeklyTimesheet, TimeLog, Project, CompanyCalendar
 
 User = get_user_model()
 
@@ -88,33 +88,29 @@ def dashboard(request, year: int = None, week: int = None):
 
             # Change the status if you clicked Submit
             if action == 'submit':
+
                 # Get all logs for this week
                 logs = TimeLog.objects.filter(timesheet=timesheet)
-
-                # Calculate the sum of hours for each date in the dictionary: {date: total_hours}
-                daily_totals = {}
-                for log in logs:
-                    daily_totals[log.date] = daily_totals.get(log.date, 0) + log.hours
-
-                # Determine the dates from Monday to Friday (5 working days) of the current week
-                workdays = [monday + datetime.timedelta(days=i) for i in range(5)]
-                invalid_days = []
-
-                # We check EVERY working day
-                for day in workdays:
-                    # If there are no logs on this day, get() will return 0
-                    total_for_day = daily_totals.get(day, 0)
-                    if total_for_day != 8:
-                        invalid_days.append(day.strftime('%d.%m'))
-
-                # If at least one working day is not equal to 8 — block the submission
-                if invalid_days:
-                    messages.error(request,
-                                   f"❌ Validation failed: You must log exactly 8 hours per workday. Check these dates: {', '.join(invalid_days)}.")
+                weekly_total = sum(log.hours for log in logs)
+                if weekly_total == 0:  # do not allow to submit empty timesheet - it has no sense for checking it
+                    messages.error(request, "❌ Cannot submit an empty timesheet. Please log your hours first.")
                 else:
+                    # allow to submit any non-empty timesheet - even one day
                     timesheet.status = WeeklyTimesheet.Status.SUBMITTED
                     timesheet.save()
-                    messages.success(request, "Timesheet submitted for approval! 🚀")
+
+                    # SOFT WARNING: If total is not standard 40h (holidays, overtime, short days)
+                    if weekly_total != 40:
+                        messages.warning(request,
+                                         f"Timesheet submitted! 🚀 Note: Logged {weekly_total}h instead of standard 40h. Your manager will review the exceptions.")
+                    # PERFECT 40h
+                    else:
+                        messages.success(request, "Timesheet submitted for approval! 🚀")
+                    # Calculate the sum of hours for each date in the dictionary: {date: total_hours}
+                    daily_totals = {}
+                    for log in logs:
+                        daily_totals[log.date] = daily_totals.get(log.date, 0) + log.hours
+
             else:
                 messages.success(request, "Draft saved successfully! 💾")
 
@@ -153,27 +149,51 @@ def dashboard(request, year: int = None, week: int = None):
     # Assembling the final "matrix" for the HTML template
     grid_data = {}
 
-    daily_totals = [0] * 7
-    weekly_total = 0
+    # Fetch global calendar events for the current week
+    # in_bulk('date') makes a dictionary with dates as keys for extremely fast lookups
+    calendar_events = CompanyCalendar.objects.filter(
+        date__range=[week_dates[0], week_dates[-1]]).in_bulk(field_name='date')
 
     for task in tasks:
         days_data = []
         row_total = 0  # variable for summing up hours per project/task
 
-        for current_date in week_dates:
-            # We look for the log in our dictionary. If not, we put hours and comments to an empty string
-            log = log_dict.get((task.id, current_date))
-            hours = log.hours if log else ""
-            comment = log.comment if log else ""
+        for i, current_date in enumerate(week_dates):
+            hours = ''
+            comment = ''
 
-            # Add to the total of the row if there are hours
-            if log and log.hours:
-                row_total += float(log.hours)
+            # Fetch existing logs using YOUR optimized dictionary!
+            log = log_dict.get((task.id, current_date))
+            if log:
+                hours = log.hours
+                row_total += hours
+                comment = log.comment
+
+            # Check if day is weekend (5=Saturday, 6=Sunday)
+            is_weekend = current_date.weekday() >= 5
+            is_holiday = False
+            is_free_monday = False
+            is_short_day = False
+
+            if current_date in calendar_events:
+                event = calendar_events[current_date]
+                if event.day_type in ['HOLIDAY', 'FREE_MONDAY']:
+                    is_holiday = True
+                    if event.day_type == 'FREE_MONDAY':
+                        is_free_monday = True
+                    else:
+                        is_free_monday = False
+                elif event.day_type == 'SHORT_DAY':
+                    is_short_day = True
 
             days_data.append({
                 'date': current_date,
                 'hours': hours,
-                'comment': comment
+                'comment': comment,
+                'is_weekend': is_weekend,
+                'is_short_day': is_short_day,
+                'is_free_monday': is_free_monday,
+                'is_holiday': is_holiday
             })
 
         # If the week is blocked and there are no hours at all - skip this task
