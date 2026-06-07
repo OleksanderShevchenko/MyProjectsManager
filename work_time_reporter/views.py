@@ -265,7 +265,7 @@ def dashboard(request, year: int = None, week: int = None):
 @login_required(login_url='work_time_reporter:login')
 def team_approvals(request):
     # Check if the current user is a manager of at least one project
-    managed_projects = Project.objects.filter(manager=request.user)
+    managed_projects = Project.objects.filter(manager=request.user, is_active=True)
 
     # Protection: if a regular engineer comes in - throw him back to his dashboard
     if not managed_projects.exists():
