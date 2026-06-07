@@ -607,8 +607,16 @@ def calendar_settings(request, year=None):
     if not year:
         year = datetime.datetime.now().year
 
+    # Check if current user is admin
+    is_admin = request.user.is_superuser
+
     # --- AJAX HANDLER FOR CLICKING A DAY ---
     if request.method == 'POST' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+
+        # HARD SECURITY: Block POST requests from non-admins
+        if not is_admin:
+            return JsonResponse({'status': 'error', 'message': 'Permission denied'}, status=403)
+
         data = json.loads(request.body)
         date_str = data.get('date')
         new_type = data.get('type')  # 'HOLIDAY', 'SHORT_DAY', 'FREE_MONDAY', or 'CLEAR'
@@ -661,6 +669,7 @@ def calendar_settings(request, year=None):
     context = {
         'year': year,
         'months_data': months_data,
-        'types': CompanyCalendar.DAY_TYPE_CHOICES
+        'types': CompanyCalendar.DAY_TYPE_CHOICES,
+        'is_admin': is_admin,
     }
     return render(request, 'work_time_reporter/calendar_settings.html', context)
