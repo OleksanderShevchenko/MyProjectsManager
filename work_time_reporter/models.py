@@ -1,6 +1,7 @@
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
+from django.core.exceptions import ValidationError
 from datetime import date
 
 
@@ -36,6 +37,17 @@ class Project(models.Model):  # a year contract by the matter of fact
         verbose_name="Team Members"
     )
 
+    def delete(self, *args, **kwargs):
+        # Restriction: Cannot delete historical projects
+        if self.year != timezone.now().year:
+            raise ValidationError("Cannot delete historical projects from previous years.")
+
+        # Restriction: Cannot delete if there are approved time logs
+        if TimeLog.objects.filter(task__project=self, timesheet__status=WeeklyTimesheet.Status.APPROVED).exists():
+            raise ValidationError("Cannot delete project because it has approved time logs.")
+
+        super().delete(*args, **kwargs)
+
     def __str__(self):
         return f"{self.name} ({self.year})"
 
@@ -64,6 +76,17 @@ class Task(models.Model):
     deadline = models.DateField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.NOT_SUBMITTED)
 
+    def delete(self, *args, **kwargs):
+        # Restriction: Cannot delete task if project is historical
+        if self.project.year != timezone.now().year:
+            raise ValidationError("Cannot delete tasks belonging to historical projects.")
+
+        # Restriction: Cannot delete if there are approved time logs
+        if TimeLog.objects.filter(task=self, timesheet__status=WeeklyTimesheet.Status.APPROVED).exists():
+            raise ValidationError("Cannot delete task because it has approved time logs.")
+
+        super().delete(*args, **kwargs)
+
     def save(self, *args, **kwargs):
         # 'Magic': if deadline has not been set - set it to last day of the year
         if not self.deadline:
@@ -90,6 +113,11 @@ class WeeklyTimesheet(models.Model):
         # У одного користувача може бути лише один звіт на конкретний тиждень року
         unique_together = ('user', 'year', 'week_number')
 
+    def delete(self, *args, **kwargs):
+        if self.status == self.Status.APPROVED:
+            raise ValidationError("Cannot delete an approved timesheet.")
+        super().delete(*args, **kwargs)
+
     def __str__(self):
         return f"{self.user} - {self.year} Week {self.week_number} ({self.status})"
 
@@ -113,6 +141,11 @@ class TimeLog(models.Model):
         constraints = [
             models.UniqueConstraint(fields=['user', 'task', 'date'], name='unique_user_task_date')
         ]
+
+    def delete(self, *args, **kwargs):
+        if self.timesheet and self.timesheet.status == WeeklyTimesheet.Status.APPROVED:
+            raise ValidationError("Cannot delete time log belonging to an approved timesheet.")
+        super().delete(*args, **kwargs)
 
     def __str__(self):
         return f"{self.user} - {self.task.title} ({self.hours}h)"
