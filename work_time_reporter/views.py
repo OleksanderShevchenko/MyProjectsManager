@@ -13,6 +13,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from .models import Task, WeeklyTimesheet, TimeLog, Project, CompanyCalendar
+from .services import TimesheetService
 
 User = get_user_model()
 
@@ -46,84 +47,18 @@ def dashboard(request, year: int = None, week: int = None):
 
     # SAVE AND SEND BUTTON PROCESSING
     if request.method == 'POST':
-        action = request.POST.get('action')
+        result = TimesheetService.save_timesheet_data(request.user, timesheet, request.POST)
+        
+        if result['success']:
+            if result['type'] == 'success':
+                messages.success(request, result['message'])
+            elif result['type'] == 'warning':
+                messages.warning(request, result['message'])
+            elif result['type'] == 'info':
+                messages.info(request, result['message'])
+        else:
+            messages.error(request, result['message'])
 
-        # Protection: if the status is not DRAFT, only recall is allowed
-        if timesheet.status != WeeklyTimesheet.Status.DRAFT and action != 'recall':
-            messages.error(request, "You cannot edit a submitted timesheet.")
-            return redirect('work_time_reporter:dashboard_week', year=year, week=week)
-
-        if action in ['save', 'submit']:
-            # We go through all the data that came from the table
-            for key, value in request.POST.items():
-                if key.startswith('hours_'):
-                    # Parse the cell name: hours_15_2026-03-12
-                    parts = key.split('_')
-                    if len(parts) == 3:
-                        _, task_id, date_str = parts
-
-                        try:
-                            task = Task.objects.get(id=task_id)
-                            log_date = datetime.datetime.strptime(date_str, '%Y-%m-%d').date()
-                            # Looking for a hidden comment field for this cell
-                            comment_val = request.POST.get(f'comment_{task_id}_{date_str}', '')
-
-                            # If the user entered hours (greater than 0)
-                            if value and float(value) > 0:
-                                TimeLog.objects.update_or_create(
-                                    user=request.user,
-                                    task=task,
-                                    date=log_date,
-                                    defaults={
-                                        'hours': float(value),
-                                        'comment': comment_val,
-                                        'timesheet': timesheet
-                                    }
-                                )
-                            # If the cell is empty or 0, we delete the record so as not to clutter the database.
-                            else:
-                                TimeLog.objects.filter(
-                                    user=request.user,
-                                    task=task,
-                                    date=log_date
-                                ).delete()
-                        except (Task.DoesNotExist, ValueError):
-                            pass
-
-            # Change the status if you clicked Submit
-            if action == 'submit':
-
-                # Get all logs for this week
-                logs = TimeLog.objects.filter(timesheet=timesheet)
-                weekly_total = sum(log.hours for log in logs)
-                if weekly_total == 0:  # do not allow to submit empty timesheet - it has no sense for checking it
-                    messages.error(request, "❌ Cannot submit an empty timesheet. Please log your hours first.")
-                else:
-                    # allow to submit any non-empty timesheet - even one day
-                    timesheet.status = WeeklyTimesheet.Status.SUBMITTED
-                    timesheet.save()
-
-                    # SOFT WARNING: If total is not standard 40h (holidays, overtime, short days)
-                    if weekly_total != 40:
-                        messages.warning(request,
-                                         f"Timesheet submitted! 🚀 Note: Logged {weekly_total}h instead of standard 40h. Your manager will review the exceptions.")
-                    # PERFECT 40h
-                    else:
-                        messages.success(request, "Timesheet submitted for approval! 🚀")
-                    # Calculate the sum of hours for each date in the dictionary: {date: total_hours}
-                    daily_totals = {}
-                    for log in logs:
-                        daily_totals[log.date] = daily_totals.get(log.date, 0) + log.hours
-
-            else:
-                messages.success(request, "Draft saved successfully! 💾")
-
-        # Revert a report back to draft
-        elif action == 'recall':
-            if timesheet.status == WeeklyTimesheet.Status.SUBMITTED:
-                timesheet.status = WeeklyTimesheet.Status.DRAFT
-                timesheet.save()
-                messages.info(request, "Timesheet recalled to draft. You can edit it again. ↩️")
 
         # Reload the page to show updated data.
         return redirect('work_time_reporter:dashboard_week', year=year, week=week)
@@ -477,130 +412,16 @@ def progress_dashboard(request, year=None):
     else:
         year_status = 'current'
 
-    integral_data = []
+    # Use Service Layer to get calculated data
+    integral_data, sorted_grid_data = TimesheetService.get_progress_data(request.user, year, year_status)
 
-    # 2. Only calculate Integral Progress if we are looking at the CURRENT year
-    if year_status == 'current':
-        project_summary = Project.objects.filter(
-            Q(is_active=True) & ~Q(project_type='ADMINISTRATIVE') & Q(tasks__assignees=request.user)
-        ).annotate(
-            total_budget=Sum('tasks__budget_hours', filter=Q(tasks__assignees=request.user)),
-            total_spent=Sum('tasks__time_logs__hours',
-                            filter=Q(tasks__time_logs__date__year=year, tasks__time_logs__user=request.user)),
-            project_start=Min('tasks__time_logs__date',
-                              filter=Q(tasks__time_logs__date__year=year, tasks__time_logs__user=request.user)),
-            project_deadline=Max('tasks__deadline', filter=Q(tasks__assignees=request.user))
-        ).filter(total_spent__gt=0).distinct().order_by('project_type', 'name')
-
-        today = datetime.date.today()
-
-        for proj in project_summary:
-            spent = float(proj.total_spent or 0)
-            budget = float(proj.total_budget or 0)
-
-            budget_pct = min(100, (spent / budget * 100)) if budget > 0 else 0
-            start = proj.project_start or datetime.date(year, 1, 1)
-            deadline = proj.project_deadline or datetime.date(year, 12, 31)
-
-            total_days = (deadline - start).days or 1
-            days_passed = (today - start).days
-            time_pct = max(0, min(100, (days_passed / total_days * 100)))
-
-            integral_data.append({
-                'project': proj,
-                'budget_pct': budget_pct,
-                'time_pct': time_pct,
-                'spent': spent,
-                'budget': budget,
-                'is_overbudget': spent > budget
-            })
-
-    # 1. Fetch tasks and dynamically calculate spent hours and the first log date (Start Date)
-    # Using Django's annotate() makes the database do the heavy lifting, making it blazing fast.
-    # namely it creates for us virtual fields 'spent_hours' and 'start_date' that are useful for progress dashboard
-    tasks = Task.objects.filter(
-        assignees=request.user
-    ).annotate(
-        # Sum of hours logged for this specific year for each task and save it as new field 'spent_hours'
-        spent_hours=Sum('time_logs__hours', filter=Q(time_logs__date__year=year)),  # Django ORM "magic"
-        # Earliest date any hours were logged (acts as our dynamic Start Date)
-        start_date=Min('time_logs__date', filter=Q(time_logs__date__year=year))
-    ).select_related('project')
-
-    # Filter out empty/closed tasks that have no activity this year
-    tasks = tasks.filter(Q(project__is_active=True) | Q(spent_hours__gt=0)).distinct()
-
-    grid_data = {}
-    today = datetime.date.today()
-
-    # 2. Process and group data by Project
-    for task in tasks:
-        if task.project not in grid_data:
-            grid_data[task.project] = []
-
-        spent = float(task.spent_hours) if task.spent_hours else 0.0
-        budget = float(task.budget_hours) if task.budget_hours else 0.0
-
-        # Budget Progress Calculation
-        if budget > 0:
-            budget_pct = min(100, (spent / budget) * 100)
-            overbudget = spent > budget
-        else:
-            budget_pct = 100 if spent > 0 else 0
-            overbudget = spent > 0
-
-        # Timeline Calculation
-        # Default start: First logged day OR Jan 1st
-        start = task.start_date or datetime.date(year, 1, 1)
-        # Default deadline: Task deadline OR Dec 31st
-        deadline = task.deadline or datetime.date(year, 12, 31)
-
-        total_days = (deadline - start).days
-        if total_days <= 0: total_days = 1 # Prevent division by zero
-
-        days_passed = (today - start).days
-        # Clamp timeline percentage between 0 and 100
-        time_pct = max(0, min(100, (days_passed / total_days) * 100))
-
-        grid_data[task.project].append({
-            'task': task,
-            'spent': spent,
-            'budget': budget,
-            'budget_pct': budget_pct,
-            'overbudget': overbudget,
-            'start_date': start,
-            'deadline': deadline,
-            'time_pct': time_pct,
-            'is_past_deadline': today > deadline,
-        })
-
-        # --- CUSTOM SORTING LOGIC ---
-        # Display in dashboard commercial task the first then administrative and finally internal/non-commercial
-        # 1. Define priority map for project types
-        def get_project_priority(project):
-            priority_map = {
-                'COMMERCIAL': 1,
-                'ADMINISTRATIVE': 2,
-                'INTERNAL': 3
-            }
-            # Return the priority number (default to 4 if type is unknown/None)
-            return priority_map.get(project.project_type, 4)
-
-        # 2. Sort the grid_data dictionary
-        # We sort by our custom priority first, and then alphabetically by project name
-        sorted_grid_data = dict(sorted(
-            grid_data.items(),
-            key=lambda item: (get_project_priority(item[0]), item[0].name)
-        ))
-
-        # 3. Pass the SORTED dictionary to the template context
-        context = {
-            'year': year,
-            'year_status': year_status,
-            'integral_data': integral_data,
-            'grid_data': sorted_grid_data,  # <-- Make sure to use sorted_grid_data here!
-            'today': today,
-        }
+    context = {
+        'year': year,
+        'year_status': year_status,
+        'integral_data': integral_data,
+        'grid_data': sorted_grid_data,
+        'today': datetime.date.today(),
+    }
     return render(request, 'work_time_reporter/progress_dashboard.html', context)
 
 
