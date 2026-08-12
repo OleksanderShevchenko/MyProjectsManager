@@ -56,6 +56,41 @@ uv run python manage.py migrate
 uv run python manage.py runserver
 ```
 
+## 💾 Database Backup & Restore
+
+There are two ways to create a backup of your local database.
+
+### Method 1: Full PostgreSQL Dump (via Docker)
+This method creates a complete SQL dump of the database running inside the Docker container (myprojectsmanager_db).
+
+Important for Windows PowerShell users: The command must be wrapped in cmd /c to prevent PowerShell from corrupting the .sql file encoding.
+
+Backup:
+```bash
+cmd /c 'docker exec -t myprojectsmanager_db pg_dump -U postgres projects_db > backup_12_08_2026_real.sql'
+```
+
+Restore:
+Create an empty database projects_db on your server/container, then run:
+
+```bash
+psql -U postgres -d projects_db -f backup_12_08_2026_real.sql
+```
+### Method 2: Django Data Export (JSON)
+
+This method exports all database records into a single JSON file. It is database-agnostic and ideal for migrating data (e.g., from PostgreSQL to SQLite).
+
+Important for Windows users: Use the -X utf8 flag and -o parameter to avoid charmap codec can't encode errors when exporting Cyrillic or special characters.
+
+Backup:
+```bash
+uv run python -X utf8 manage.py dumpdata -o datadump_12_08_2026.json
+```
+Restore:
+```bash
+uv run python manage.py loaddata datadump_12_08_2026.json
+```
+
 ## 🤝 Contributing
 Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/OleksanderShevchenko/MyProjectsManager/issues).
 
