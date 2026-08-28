@@ -219,6 +219,15 @@ def team_approvals(request):
 
         try:
             ts = WeeklyTimesheet.objects.get(id=timesheet_id)
+
+            # Verify the current user manages at least one active project that this timesheet's owner is assigned to
+            managed_project_ids = managed_projects.values_list('id', flat=True)
+            user_project_ids = Project.objects.filter(members=ts.user).values_list('id', flat=True)
+
+            if not (set(managed_project_ids) & set(user_project_ids)) or ts.user == request.user:
+                messages.error(request, "Access denied. You are not authorized to review this timesheet.")
+                return redirect('work_time_reporter:team_approvals')
+
             if action == 'approve':
                 ts.status = WeeklyTimesheet.Status.APPROVED
                 ts.save()
@@ -256,7 +265,7 @@ def timesheet_detail(request, timesheet_id):
     timesheet = get_object_or_404(WeeklyTimesheet, id=timesheet_id)
 
     # Access control: either the owner himself or his manager can view
-    managed_projects = Project.objects.filter(manager=request.user)
+    managed_projects = Project.objects.filter(manager=request.user, is_active=True)
     managed_users = User.objects.filter(assigned_projects__in=managed_projects)
 
     is_manager = request.user != timesheet.user and timesheet.user in managed_users
