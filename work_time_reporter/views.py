@@ -149,37 +149,37 @@ def dashboard(request, year: int = None, week: int = None):
             'row_total': row_total
         })
 
-        # --- MINI DASHBOARD LOGIC ---
-        # Quick overview of project budgets for the projects present in this week's grid
-        mini_dashboard = []
+    # --- MINI DASHBOARD LOGIC ---
+    # Quick overview of project budgets for the projects present in this week's grid
+    mini_dashboard = []
 
-        for project in grid_data.keys():
-            # 1. Find all tasks for this project assigned to the current user
-            tasks_in_proj = Task.objects.filter(project=project, assignees=request.user)
+    for project in grid_data.keys():
+        # 1. Find all tasks for this project assigned to the current user
+        tasks_in_proj = Task.objects.filter(project=project, assignees=request.user)
 
-            # 2. Calculate total budget for these tasks
-            budget = sum(t.budget_hours for t in tasks_in_proj if t.budget_hours)
+        # 2. Calculate total budget for these tasks
+        budget = sum(t.budget_hours for t in tasks_in_proj if t.budget_hours)
 
-            # 3. Calculate total spent hours across ALL timesheets (not just this week)
-            spent_result = TimeLog.objects.filter(task__in=tasks_in_proj, user=request.user).aggregate(
-                total=Sum('hours'))
-            spent = float(spent_result['total'] or 0.0)
+        # 3. Calculate total spent hours across ALL timesheets (not just this week)
+        spent_result = TimeLog.objects.filter(task__in=tasks_in_proj, user=request.user).aggregate(
+            total=Sum('hours'))
+        spent = float(spent_result['total'] or 0.0)
 
-            # 4. Calculate progress percentage
-            if budget > 0:
-                pct = min(100, (spent / budget) * 100)
-                overbudget = spent > budget
-            else:
-                pct = 100 if spent > 0 else 0
-                overbudget = spent > 0
+        # 4. Calculate progress percentage
+        if budget > 0:
+            pct = min(100, (spent / budget) * 100)
+            overbudget = spent > budget
+        else:
+            pct = 100 if spent > 0 else 0
+            overbudget = spent > 0
 
-            mini_dashboard.append({
-                'name': project.name,
-                'budget': budget,
-                'spent': spent,
-                'pct': pct,
-                'overbudget': overbudget
-            })
+        mini_dashboard.append({
+            'name': project.name,
+            'budget': budget,
+            'spent': spent,
+            'pct': pct,
+            'overbudget': overbudget
+        })
 
     context = {
         'timesheet': timesheet,
