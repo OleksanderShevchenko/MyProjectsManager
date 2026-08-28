@@ -202,15 +202,10 @@ def team_approvals(request):
     # Check if the current user is a manager of at least one project
     managed_projects = Project.objects.filter(manager=request.user, is_active=True)
 
-    # Protection: if a regular engineer comes in - throw him back to his dashboard
+    # Protection: if user is not a manager of any active project, redirect to dashboard
     if not managed_projects.exists():
         messages.warning(request, "Access denied. You are not a manager of any active project.")
         return redirect('work_time_reporter:dashboard')
-
-    # Protection: if a regular engineer comes in - throw him back to his dashboard
-    if not managed_projects.exists():
-        messages.warning(request, "Access denied. You are not a manager of any project.")
-        return redirect('work_time_reporter:dashboard')  # with this url it will be re-adrest to current week
 
     # Handling Approve / Reject button presses
     if request.method == 'POST':
