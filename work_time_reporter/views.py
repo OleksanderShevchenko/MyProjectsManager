@@ -149,37 +149,37 @@ def dashboard(request, year: int = None, week: int = None):
             'row_total': row_total
         })
 
-        # --- MINI DASHBOARD LOGIC ---
-        # Quick overview of project budgets for the projects present in this week's grid
-        mini_dashboard = []
+    # --- MINI DASHBOARD LOGIC ---
+    # Quick overview of project budgets for the projects present in this week's grid
+    mini_dashboard = []
 
-        for project in grid_data.keys():
-            # 1. Find all tasks for this project assigned to the current user
-            tasks_in_proj = Task.objects.filter(project=project, assignees=request.user)
+    for project in grid_data.keys():
+        # 1. Find all tasks for this project assigned to the current user
+        tasks_in_proj = Task.objects.filter(project=project, assignees=request.user)
 
-            # 2. Calculate total budget for these tasks
-            budget = sum(t.budget_hours for t in tasks_in_proj if t.budget_hours)
+        # 2. Calculate total budget for these tasks
+        budget = sum(t.budget_hours for t in tasks_in_proj if t.budget_hours)
 
-            # 3. Calculate total spent hours across ALL timesheets (not just this week)
-            spent_result = TimeLog.objects.filter(task__in=tasks_in_proj, user=request.user).aggregate(
-                total=Sum('hours'))
-            spent = float(spent_result['total'] or 0.0)
+        # 3. Calculate total spent hours across ALL timesheets (not just this week)
+        spent_result = TimeLog.objects.filter(task__in=tasks_in_proj, user=request.user).aggregate(
+            total=Sum('hours'))
+        spent = float(spent_result['total'] or 0.0)
 
-            # 4. Calculate progress percentage
-            if budget > 0:
-                pct = min(100, (spent / budget) * 100)
-                overbudget = spent > budget
-            else:
-                pct = 100 if spent > 0 else 0
-                overbudget = spent > 0
+        # 4. Calculate progress percentage
+        if budget > 0:
+            pct = min(100, (spent / budget) * 100)
+            overbudget = spent > budget
+        else:
+            pct = 100 if spent > 0 else 0
+            overbudget = spent > 0
 
-            mini_dashboard.append({
-                'name': project.name,
-                'budget': budget,
-                'spent': spent,
-                'pct': pct,
-                'overbudget': overbudget
-            })
+        mini_dashboard.append({
+            'name': project.name,
+            'budget': budget,
+            'spent': spent,
+            'pct': pct,
+            'overbudget': overbudget
+        })
 
     context = {
         'timesheet': timesheet,
@@ -202,15 +202,10 @@ def team_approvals(request):
     # Check if the current user is a manager of at least one project
     managed_projects = Project.objects.filter(manager=request.user, is_active=True)
 
-    # Protection: if a regular engineer comes in - throw him back to his dashboard
+    # Protection: if user is not a manager of any active project, redirect to dashboard
     if not managed_projects.exists():
         messages.warning(request, "Access denied. You are not a manager of any active project.")
         return redirect('work_time_reporter:dashboard')
-
-    # Protection: if a regular engineer comes in - throw him back to his dashboard
-    if not managed_projects.exists():
-        messages.warning(request, "Access denied. You are not a manager of any project.")
-        return redirect('work_time_reporter:dashboard')  # with this url it will be re-adrest to current week
 
     # Handling Approve / Reject button presses
     if request.method == 'POST':
@@ -219,6 +214,15 @@ def team_approvals(request):
 
         try:
             ts = WeeklyTimesheet.objects.get(id=timesheet_id)
+
+            # Verify the current user manages at least one active project that this timesheet's owner is assigned to
+            managed_project_ids = managed_projects.values_list('id', flat=True)
+            user_project_ids = Project.objects.filter(members=ts.user).values_list('id', flat=True)
+
+            if not (set(managed_project_ids) & set(user_project_ids)) or ts.user == request.user:
+                messages.error(request, "Access denied. You are not authorized to review this timesheet.")
+                return redirect('work_time_reporter:team_approvals')
+
             if action == 'approve':
                 ts.status = WeeklyTimesheet.Status.APPROVED
                 ts.save()
@@ -256,7 +260,7 @@ def timesheet_detail(request, timesheet_id):
     timesheet = get_object_or_404(WeeklyTimesheet, id=timesheet_id)
 
     # Access control: either the owner himself or his manager can view
-    managed_projects = Project.objects.filter(manager=request.user)
+    managed_projects = Project.objects.filter(manager=request.user, is_active=True)
     managed_users = User.objects.filter(assigned_projects__in=managed_projects)
 
     is_manager = request.user != timesheet.user and timesheet.user in managed_users

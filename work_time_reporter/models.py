@@ -5,6 +5,11 @@ from django.core.exceptions import ValidationError
 from datetime import date
 
 
+def current_year() -> int:
+    """Return the current year dynamically."""
+    return timezone.now().year
+
+
 class Project(models.Model):  # a year contract by the matter of fact
     class ProjectType(models.TextChoices):
         COMMERCIAL = 'COMMERCIAL', 'Commercial'
@@ -17,8 +22,8 @@ class Project(models.Model):  # a year contract by the matter of fact
         choices=ProjectType.choices,
         default=ProjectType.COMMERCIAL
     )
-    # Store year of the contract. By default, it is current year
-    year = models.IntegerField(default=timezone.now().year)
+    # Store year of the contract. Evaluated dynamically per instance.
+    year = models.IntegerField(default=current_year)
     is_active = models.BooleanField(default=True)
 
     # 1. Manager of the project (Owner)

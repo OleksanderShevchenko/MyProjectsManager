@@ -1,19 +1,30 @@
-# Віртуальне середовище
+# Virtual environments
 .venv/
 env/
 venv/
-.idea/
 
-# Файли Python
+# Python cache files
 __pycache__/
 *.py[cod]
 *$py.class
 
-# Секретні файли (дуже важливо!)
+# Environment & secrets
 .env
 
-# База даних (якщо буде локальна SQLite)
+# Local databases, backups, and dumps
 db.sqlite3
+db_backups/
+*.sql
+*.dump
+datadump_*.json
 
-# Налаштування PyCharm
+# Static files & collected assets
+staticfiles/
+
+# Logs
+logs/
+*.log
+
+# IDE & Editor settings
 .idea/
+.vscode/
