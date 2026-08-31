@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.test import Client
 from django.utils import timezone
 
-from work_time_reporter.models import Project, Task, WeeklyTimesheet, TimeLog, CompanyCalendar
+from work_time_reporter.models import Project, Task, WeeklyTimesheet
 
 User = get_user_model()
 
