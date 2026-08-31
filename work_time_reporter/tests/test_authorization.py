@@ -1,15 +1,11 @@
-import datetime
 import pytest
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.utils import timezone
 
 from work_time_reporter.models import (
-    Project,
-    Task,
     WeeklyTimesheet,
-    TimeLog,
-    CompanyCalendar
+    TimeLog
 )
 
 User = get_user_model()
