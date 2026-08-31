@@ -4,10 +4,9 @@ import json
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from django.db.models import Sum, Min, Q, Max
+from django.db.models import Sum, Q
 from django.http import JsonResponse
 from django.urls import reverse
 from django.utils import timezone
@@ -48,7 +47,7 @@ def dashboard(request, year: int = None, week: int = None):
     # SAVE AND SEND BUTTON PROCESSING
     if request.method == 'POST':
         result = TimesheetService.save_timesheet_data(request.user, timesheet, request.POST)
-        
+
         if result['success']:
             if result['type'] == 'success':
                 messages.success(request, result['message'])
