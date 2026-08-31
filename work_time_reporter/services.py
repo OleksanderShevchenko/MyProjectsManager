@@ -3,7 +3,6 @@ from typing import Tuple
 
 from django.db import transaction
 from django.db.models import Sum, Min, Q, Max
-from django.utils import timezone
 from .models import Task, TimeLog, WeeklyTimesheet, Project
 
 class TimesheetService:
@@ -13,7 +12,6 @@ class TimesheetService:
         Processes POST data from the dashboard to save or update time logs.
         """
         action = post_data.get('action')
-        messages = []
 
         # Protection: if the status is not DRAFT, only recall is allowed
         if timesheet.status != WeeklyTimesheet.Status.DRAFT and action != 'recall':
@@ -59,18 +57,18 @@ class TimesheetService:
                         weekly_total = sum(log.hours for log in logs)
                         if weekly_total == 0:
                             return {'success': False, 'message': "❌ Cannot submit an empty timesheet. Please log your hours first.", 'type': 'error'}
-                        
+
                         timesheet.status = WeeklyTimesheet.Status.SUBMITTED
                         timesheet.save()
 
                         if weekly_total != 40:
                             return {
-                                'success': True, 
+                                'success': True,
                                 'message': f"Timesheet submitted! 🚀 Note: Logged {weekly_total}h instead of standard 40h. Your manager will review the exceptions.",
                                 'type': 'warning'
                             }
                         return {'success': True, 'message': "Timesheet submitted for approval! 🚀", 'type': 'success'}
-                    
+
                     return {'success': True, 'message': "Draft saved successfully! 💾", 'type': 'success'}
             except Exception as e:
                 return {'success': False, 'message': f"Error saving timesheet: {str(e)}", 'type': 'error'}
@@ -80,7 +78,7 @@ class TimesheetService:
                 timesheet.status = WeeklyTimesheet.Status.DRAFT
                 timesheet.save()
                 return {'success': True, 'message': "Timesheet recalled to draft. You can edit it again. ↩️", 'type': 'info'}
-        
+
         return {'success': False, 'message': "Unknown action.", 'type': 'error'}
 
     @staticmethod

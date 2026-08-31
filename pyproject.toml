@@ -1,7 +1,7 @@
 [project]
 name = "myprojectsmanager"
 version = "0.1.0"
-description = "Add your description here"
+description = "Web tool for weekly working-hours reporting"
 requires-python = ">=3.14"
 dependencies = [
     "dj-database-url>=3.1.2",
@@ -11,3 +11,28 @@ dependencies = [
     "python-dotenv>=1.2.2",
     "requests>=2.32.5",
 ]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-django>=4.9",
+    "pytest-cov>=6.0",
+    "factory-boy>=3.3",
+    "ruff>=0.8",
+]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings"
+python_files = ["test_*.py", "*_test.py"]
+addopts = "--reuse-db"
+
+[tool.ruff]
+line-length = 120
+target-version = "py314"
+exclude = [
+    "**/migrations/*",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "W"]
+ignore = ["E501"]
