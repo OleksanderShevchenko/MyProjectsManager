@@ -191,3 +191,31 @@ class TestCompanyCalendarModel:
         )
         assert "Holiday / Non-working day" in str(cal)
         assert "2026-12-25" in str(cal)
+
+
+@pytest.mark.django_db
+class TestTimestampMixinAndAuditFields:
+    def test_models_have_timestamps(self, active_project, active_task, draft_timesheet):
+        """Verify models inherit created_at and updated_at from TimestampMixin."""
+        assert active_project.created_at is not None
+        assert active_project.updated_at is not None
+        assert active_task.created_at is not None
+        assert active_task.updated_at is not None
+        assert draft_timesheet.created_at is not None
+        assert draft_timesheet.updated_at is not None
+
+    def test_weekly_timesheet_audit_fields(self, draft_timesheet, manager_user):
+        """Verify WeeklyTimesheet audit trail fields exist and can be populated."""
+        now = timezone.now()
+        draft_timesheet.submitted_at = now
+        draft_timesheet.approved_at = now
+        draft_timesheet.approved_by = manager_user
+        draft_timesheet.rejection_comment = "Please clarify task allocation."
+        draft_timesheet.save()
+
+        draft_timesheet.refresh_from_db()
+        assert draft_timesheet.submitted_at == now
+        assert draft_timesheet.approved_at == now
+        assert draft_timesheet.approved_by == manager_user
+        assert draft_timesheet.rejection_comment == "Please clarify task allocation."
+
