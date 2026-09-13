@@ -224,12 +224,16 @@ def team_approvals(request):
 
             if action == 'approve':
                 ts.status = WeeklyTimesheet.Status.APPROVED
+                ts.approved_at = timezone.now()
+                ts.approved_by = request.user
                 ts.save()
                 messages.success(request, f"Timesheet for {ts.user.username} approved! ✅")
             elif action == 'reject':
+                rejection_comment = request.POST.get('rejection_comment', '').strip()
                 ts.status = WeeklyTimesheet.Status.DRAFT
+                ts.rejection_comment = rejection_comment
                 ts.save()
-                messages.warning(request, f"Timesheet for {ts.user.username} rejected and returned to draft. ❌")
+                messages.warning(request, f"Timesheet for {ts.user.username} rejected with feedback and returned to draft. ❌")
         except WeeklyTimesheet.DoesNotExist:
             messages.error(request, "Timesheet not found.")
 
@@ -274,13 +278,17 @@ def timesheet_detail(request, timesheet_id):
         action = request.POST.get('action')
         if action == 'approve':
             timesheet.status = WeeklyTimesheet.Status.APPROVED
+            timesheet.approved_at = timezone.now()
+            timesheet.approved_by = request.user
             timesheet.save()
             messages.success(request, f"Timesheet for {timesheet.user.username} approved! ✅")
             return redirect('work_time_reporter:team_approvals')
         elif action == 'reject':
+            rejection_comment = request.POST.get('rejection_comment', '').strip()
             timesheet.status = WeeklyTimesheet.Status.DRAFT
+            timesheet.rejection_comment = rejection_comment
             timesheet.save()
-            messages.warning(request, f"Timesheet for {timesheet.user.username} rejected. ❌")
+            messages.warning(request, f"Timesheet for {timesheet.user.username} rejected with feedback. ❌")
             return redirect('work_time_reporter:team_approvals')
 
     # Collecting the dates of the week
