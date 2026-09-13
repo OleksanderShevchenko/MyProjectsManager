@@ -110,6 +110,28 @@ class TestYearlyAndProgressViews:
         assert response.status_code == 200
         assert 'weeks_data' in response.context
 
+    def test_yearly_dashboard_week_53_for_leap_iso_year(
+        self, engineer_client
+    ):
+        """Verify that years with 53 ISO weeks (such as 2026) render 53 weeks in the grid."""
+        url = reverse('work_time_reporter:yearly_dashboard_year', kwargs={'year': 2026})
+        response = engineer_client.get(url)
+        assert response.status_code == 200
+        weeks_data = response.context['weeks_data']
+        assert len(weeks_data) == 53
+        assert weeks_data[-1]['week_num'] == 53
+
+    def test_yearly_dashboard_week_52_for_standard_iso_year(
+        self, engineer_client
+    ):
+        """Verify that standard 52-week ISO years (such as 2025) render 52 weeks."""
+        url = reverse('work_time_reporter:yearly_dashboard_year', kwargs={'year': 2025})
+        response = engineer_client.get(url)
+        assert response.status_code == 200
+        weeks_data = response.context['weeks_data']
+        assert len(weeks_data) == 52
+        assert weeks_data[-1]['week_num'] == 52
+
     def test_progress_dashboard_current_loads_correctly(
         self, engineer_client, active_project, active_task
     ):
