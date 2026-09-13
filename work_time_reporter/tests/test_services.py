@@ -180,9 +180,16 @@ class TestTimesheetServiceProgressData:
         task.assignees.add(engineer_user)
 
         # Log 25 hours (overbudget!)
+        timesheet = WeeklyTimesheet.objects.create(
+            user=engineer_user,
+            year=current_year,
+            week_number=19,
+            status=WeeklyTimesheet.Status.DRAFT
+        )
         TimeLog.objects.create(
             user=engineer_user,
             task=task,
+            timesheet=timesheet,
             date=datetime.date(current_year, 5, 10),
             hours=25.0
         )
