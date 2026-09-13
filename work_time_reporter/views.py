@@ -351,9 +351,11 @@ def yearly_dashboard(request, year=None):
     timesheets = WeeklyTimesheet.objects.filter(user=request.user, year=year)
     timesheet_dict = {ts.week_number: ts for ts in timesheets}
 
+    # ISO 8601 standard: December 28th is always in the last week of the year (52 or 53)
+    max_weeks = datetime.date(year, 12, 28).isocalendar()[1]
+
     weeks_data = []
-    # A standard year has 52 weeks (sometimes 53, but for the grid we will take 52)
-    for w in range(1, 53):
+    for w in range(1, max_weeks + 1):
         ts = timesheet_dict.get(w)
         if ts:
             # Determine the color depending on the status
