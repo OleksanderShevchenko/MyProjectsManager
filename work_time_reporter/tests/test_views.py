@@ -5,7 +5,8 @@ from django.urls import reverse
 from django.utils import timezone
 
 from work_time_reporter.models import (
-    TimeLog
+    TimeLog,
+    WeeklyTimesheet
 )
 
 User = get_user_model()
@@ -97,6 +98,42 @@ class TestDashboardViews:
             date=datetime.date(2026, 8, 24),
             hours=8.0
         ).exists()
+
+    def test_dashboard_renders_rejection_comment_banner_when_rejected(
+        self, engineer_client, draft_timesheet
+    ):
+        """Dashboard renders warning banner with manager's feedback when timesheet was rejected."""
+        draft_timesheet.rejection_comment = "Please verify hours logged for project deployment."
+        draft_timesheet.status = WeeklyTimesheet.Status.DRAFT
+        draft_timesheet.save()
+
+        url = reverse('work_time_reporter:dashboard_week', kwargs={
+            'year': draft_timesheet.year,
+            'week': draft_timesheet.week_number
+        })
+        response = engineer_client.get(url)
+        assert response.status_code == 200
+
+        content = response.content.decode('utf-8')
+        assert "Timesheet Returned with Feedback" in content
+        assert "Please verify hours logged for project deployment." in content
+
+    def test_dashboard_does_not_render_rejection_banner_when_clean(
+        self, engineer_client, draft_timesheet
+    ):
+        """Dashboard does not render rejection banner when there is no rejection comment."""
+        draft_timesheet.rejection_comment = ""
+        draft_timesheet.save()
+
+        url = reverse('work_time_reporter:dashboard_week', kwargs={
+            'year': draft_timesheet.year,
+            'week': draft_timesheet.week_number
+        })
+        response = engineer_client.get(url)
+        assert response.status_code == 200
+
+        content = response.content.decode('utf-8')
+        assert "Timesheet Returned with Feedback" not in content
 
 
 @pytest.mark.django_db
