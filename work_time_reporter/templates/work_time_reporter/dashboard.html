@@ -51,6 +51,23 @@
     </div>
 </div>
 
+{% if timesheet.rejection_comment and timesheet.status == 'DRAFT' %}
+<div class="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg shadow-sm">
+    <div class="flex items-start">
+        <div class="flex-shrink-0 text-red-500 text-xl font-bold">
+            ⚠️
+        </div>
+        <div class="ml-3">
+            <h3 class="text-sm font-bold text-red-800">Timesheet Returned with Feedback</h3>
+            <div class="mt-1 text-sm text-red-700">
+                <p><strong>Manager's Note:</strong> {{ timesheet.rejection_comment }}</p>
+            </div>
+            <p class="mt-2 text-xs text-red-600">Please review the notes, make the necessary corrections to your logged hours, and submit again for approval.</p>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 {% if mini_dashboard %}
 <div class="mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
     {% for proj in mini_dashboard %}
