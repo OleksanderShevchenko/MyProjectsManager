@@ -3,6 +3,7 @@ from typing import Tuple
 
 from django.db import transaction
 from django.db.models import Sum, Min, Q, Max
+from django.utils import timezone
 from .models import Task, TimeLog, WeeklyTimesheet, Project
 
 class TimesheetService:
@@ -15,40 +16,57 @@ class TimesheetService:
 
         # Protection: if the status is not DRAFT, only recall is allowed
         if timesheet.status != WeeklyTimesheet.Status.DRAFT and action != 'recall':
-            return {'success': False, 'message': "You cannot edit a submitted timesheet.", 'type': 'error'}
+            return {'success': False, 'message': "You cannot edit a submitted timesheet. Please recall it first.", 'type': 'error'}
 
         if action in ['save', 'submit']:
             try:
                 with transaction.atomic():
+                    # Process form data
                     for key, value in post_data.items():
                         if key.startswith('hours_'):
                             parts = key.split('_')
-                            if len(parts) == 3:
-                                _, task_id, date_str = parts
+                            task_id = parts[1]
+                            date_str = parts[2]
+                            hours_str = value.strip()
+
+                            comment_key = f"comment_{task_id}_{date_str}"
+                            comment_val = post_data.get(comment_key, '').strip()
+
+                            if hours_str:
                                 try:
-                                    task = Task.objects.get(id=task_id)
-                                    log_date = datetime.datetime.strptime(date_str, '%Y-%m-%d').date()
-                                    # Looking for a hidden comment field for this cell
-                                    comment_val = post_data.get(f'comment_{task_id}_{date_str}', '')
-                                    # If the user entered hours (greater than 0)
-                                    if value and float(value) > 0:
+                                    hours_val = float(hours_str)
+                                    if hours_val > 0:
+                                        task = Task.objects.get(id=task_id)
+                                        log_date = datetime.date.fromisoformat(date_str)
                                         TimeLog.objects.update_or_create(
                                             user=user,
                                             task=task,
                                             date=log_date,
                                             defaults={
-                                                'hours': float(value),
+                                                'hours': hours_val,
                                                 'comment': comment_val,
                                                 'timesheet': timesheet
                                             }
                                         )
-                                    # If the cell is empty or 0, we delete the record so as not to clutter the database.
-                                    else:
+                                    elif hours_val == 0:
+                                        task = Task.objects.get(id=task_id)
+                                        log_date = datetime.date.fromisoformat(date_str)
                                         TimeLog.objects.filter(
                                             user=user,
                                             task=task,
                                             date=log_date
                                         ).delete()
+                                except (Task.DoesNotExist, ValueError):
+                                    pass
+                            else:
+                                try:
+                                    task = Task.objects.get(id=task_id)
+                                    log_date = datetime.date.fromisoformat(date_str)
+                                    TimeLog.objects.filter(
+                                        user=user,
+                                        task=task,
+                                        date=log_date
+                                    ).delete()
                                 except (Task.DoesNotExist, ValueError):
                                     pass
                     # Change the status if you clicked Submit
@@ -59,6 +77,8 @@ class TimesheetService:
                             return {'success': False, 'message': "❌ Cannot submit an empty timesheet. Please log your hours first.", 'type': 'error'}
 
                         timesheet.status = WeeklyTimesheet.Status.SUBMITTED
+                        timesheet.submitted_at = timezone.now()
+                        timesheet.rejection_comment = ''  # Clear any previous rejection comment upon resubmission
                         timesheet.save()
 
                         if weekly_total != 40:
@@ -76,6 +96,7 @@ class TimesheetService:
         elif action == 'recall':
             if timesheet.status == WeeklyTimesheet.Status.SUBMITTED:
                 timesheet.status = WeeklyTimesheet.Status.DRAFT
+                timesheet.submitted_at = None
                 timesheet.save()
                 return {'success': True, 'message': "Timesheet recalled to draft. You can edit it again. ↩️", 'type': 'info'}
 
