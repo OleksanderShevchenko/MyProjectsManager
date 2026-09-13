@@ -150,9 +150,13 @@ class WeeklyTimesheet(TimestampMixin, models.Model):
 
 
 class TimeLog(TimestampMixin, models.Model):
-    # Added link to weekly report (null=True temporarily so as not to break your existing test data)
-    timesheet = models.ForeignKey(WeeklyTimesheet, on_delete=models.CASCADE, related_name='time_logs', null=True,
-                                  blank=True)
+    # Mandatory link to weekly report: every time log must belong to a weekly timesheet
+    timesheet = models.ForeignKey(
+        WeeklyTimesheet,
+        on_delete=models.CASCADE,
+        related_name='time_logs',
+        verbose_name="Weekly Timesheet"
+    )
 
     task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name='time_logs')
     # Connect time reporting with a user
@@ -170,7 +174,7 @@ class TimeLog(TimestampMixin, models.Model):
         ]
 
     def delete(self, *args, **kwargs):
-        if self.timesheet and self.timesheet.status == WeeklyTimesheet.Status.APPROVED:
+        if self.timesheet.status == WeeklyTimesheet.Status.APPROVED:
             raise ValidationError("Cannot delete time log belonging to an approved timesheet.")
         super().delete(*args, **kwargs)
 
