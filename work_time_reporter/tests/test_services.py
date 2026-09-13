@@ -121,11 +121,32 @@ class TestTimesheetServiceSaveAndSubmit:
         draft_timesheet.refresh_from_db()
         assert draft_timesheet.status == WeeklyTimesheet.Status.SUBMITTED
 
+    def test_submit_timesheet_sets_submitted_at_and_clears_rejection_comment(
+        self, engineer_user, active_task, draft_timesheet
+    ):
+        """Verify submitting a timesheet sets submitted_at and clears previous rejection comment."""
+        draft_timesheet.rejection_comment = "Fix Tuesday hours"
+        draft_timesheet.save()
+
+        post_data = {
+            'action': 'submit',
+            f'hours_{active_task.id}_2026-08-24': '8.0'
+        }
+
+        result = TimesheetService.save_timesheet_data(engineer_user, draft_timesheet, post_data)
+        assert result['success'] is True
+
+        draft_timesheet.refresh_from_db()
+        assert draft_timesheet.status == WeeklyTimesheet.Status.SUBMITTED
+        assert draft_timesheet.submitted_at is not None
+        assert draft_timesheet.rejection_comment == ''
+
     def test_recall_submitted_timesheet_resets_to_draft(
         self, engineer_user, active_task, draft_timesheet
     ):
-        """Verify recalling a SUBMITTED timesheet changes status back to DRAFT."""
+        """Verify recalling a SUBMITTED timesheet changes status back to DRAFT and clears submitted_at."""
         draft_timesheet.status = WeeklyTimesheet.Status.SUBMITTED
+        draft_timesheet.submitted_at = timezone.now()
         draft_timesheet.save()
 
         post_data = {'action': 'recall'}
@@ -137,6 +158,7 @@ class TestTimesheetServiceSaveAndSubmit:
 
         draft_timesheet.refresh_from_db()
         assert draft_timesheet.status == WeeklyTimesheet.Status.DRAFT
+        assert draft_timesheet.submitted_at is None
 
     def test_edit_submitted_timesheet_is_blocked(
         self, engineer_user, active_task, draft_timesheet
