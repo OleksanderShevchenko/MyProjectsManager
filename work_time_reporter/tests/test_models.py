@@ -144,12 +144,13 @@ class TestWeeklyTimesheetModel:
 
 @pytest.mark.django_db
 class TestTimeLogModel:
-    def test_unique_constraint_user_task_date(self, active_task, engineer_user):
+    def test_unique_constraint_user_task_date(self, active_task, engineer_user, draft_timesheet):
         """Verify the 'Iron Rule': cannot log time twice for the same user, task, and date."""
         today = timezone.now().date()
         TimeLog.objects.create(
             user=engineer_user,
             task=active_task,
+            timesheet=draft_timesheet,
             date=today,
             hours=5.0
         )
@@ -157,8 +158,20 @@ class TestTimeLogModel:
             TimeLog.objects.create(
                 user=engineer_user,
                 task=active_task,
+                timesheet=draft_timesheet,
                 date=today,
                 hours=3.0
+            )
+
+    def test_timelog_requires_timesheet(self, active_task, engineer_user):
+        """Verify TimeLog cannot be created without a timesheet (null=False constraint)."""
+        with pytest.raises(IntegrityError):
+            TimeLog.objects.create(
+                user=engineer_user,
+                task=active_task,
+                timesheet=None,
+                date=timezone.now().date(),
+                hours=4.0
             )
 
     def test_delete_time_log_on_approved_timesheet_raises_error(
