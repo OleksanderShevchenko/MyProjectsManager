@@ -57,7 +57,7 @@ class TestTeamApprovalsAuthorization:
         assert 'pending_timesheets' in response.context
 
     def test_manager_can_approve_subordinate_timesheet(
-        self, manager_client, active_project, active_task, engineer_user, draft_timesheet
+        self, manager_client, manager_user, active_project, active_task, engineer_user, draft_timesheet
     ):
         """Manager can approve submitted timesheet for engineers in their active projects."""
         # Setup submitted timesheet with hours
@@ -82,6 +82,36 @@ class TestTeamApprovalsAuthorization:
 
         draft_timesheet.refresh_from_db()
         assert draft_timesheet.status == WeeklyTimesheet.Status.APPROVED
+        assert draft_timesheet.approved_by == manager_user
+        assert draft_timesheet.approved_at is not None
+
+    def test_manager_can_reject_subordinate_timesheet_with_comment(
+        self, manager_client, active_project, active_task, engineer_user, draft_timesheet
+    ):
+        """Manager can reject a submitted timesheet and provide a rejection comment."""
+        TimeLog.objects.create(
+            user=engineer_user,
+            task=active_task,
+            timesheet=draft_timesheet,
+            date=timezone.now().date(),
+            hours=8.0
+        )
+        draft_timesheet.status = WeeklyTimesheet.Status.SUBMITTED
+        draft_timesheet.save()
+
+        url = reverse('work_time_reporter:team_approvals')
+        post_data = {
+            'timesheet_id': draft_timesheet.id,
+            'action': 'reject',
+            'rejection_comment': 'Please fix hours on Thursday'
+        }
+
+        response = manager_client.post(url, post_data, follow=True)
+        assert response.status_code == 200
+
+        draft_timesheet.refresh_from_db()
+        assert draft_timesheet.status == WeeklyTimesheet.Status.DRAFT
+        assert draft_timesheet.rejection_comment == 'Please fix hours on Thursday'
 
     def test_manager_cannot_approve_unrelated_engineer_timesheet(
         self, manager_client, other_user, active_project
@@ -171,3 +201,52 @@ class TestTimesheetDetailAuthorization:
         assert response.status_code == 200
         # Redirected to dashboard due to Access Denied
         assert response.redirect_chain[0][0] == reverse('work_time_reporter:dashboard')
+
+    def test_manager_can_approve_timesheet_in_detail_view(
+        self, manager_client, manager_user, active_project, active_task, engineer_user, draft_timesheet
+    ):
+        """Manager can approve timesheet from the detail view."""
+        TimeLog.objects.create(
+            user=engineer_user,
+            task=active_task,
+            timesheet=draft_timesheet,
+            date=timezone.now().date(),
+            hours=8.0
+        )
+        draft_timesheet.status = WeeklyTimesheet.Status.SUBMITTED
+        draft_timesheet.save()
+
+        url = reverse('work_time_reporter:timesheet_detail', kwargs={'timesheet_id': draft_timesheet.id})
+        response = manager_client.post(url, {'action': 'approve'}, follow=True)
+        assert response.status_code == 200
+
+        draft_timesheet.refresh_from_db()
+        assert draft_timesheet.status == WeeklyTimesheet.Status.APPROVED
+        assert draft_timesheet.approved_by == manager_user
+        assert draft_timesheet.approved_at is not None
+
+    def test_manager_can_reject_timesheet_in_detail_view_with_comment(
+        self, manager_client, active_project, active_task, engineer_user, draft_timesheet
+    ):
+        """Manager can reject timesheet from the detail view with feedback comment."""
+        TimeLog.objects.create(
+            user=engineer_user,
+            task=active_task,
+            timesheet=draft_timesheet,
+            date=timezone.now().date(),
+            hours=8.0
+        )
+        draft_timesheet.status = WeeklyTimesheet.Status.SUBMITTED
+        draft_timesheet.save()
+
+        url = reverse('work_time_reporter:timesheet_detail', kwargs={'timesheet_id': draft_timesheet.id})
+        response = manager_client.post(
+            url,
+            {'action': 'reject', 'rejection_comment': 'Exceeded daily limit on Friday'},
+            follow=True
+        )
+        assert response.status_code == 200
+
+        draft_timesheet.refresh_from_db()
+        assert draft_timesheet.status == WeeklyTimesheet.Status.DRAFT
+        assert draft_timesheet.rejection_comment == 'Exceeded daily limit on Friday'
