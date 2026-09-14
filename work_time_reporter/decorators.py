@@ -1,7 +1,10 @@
+import logging
 from functools import wraps
 from django.contrib import messages
 from django.http import JsonResponse
 from django.shortcuts import redirect
+
+logger = logging.getLogger(__name__)
 
 
 def manager_required(view_func):
@@ -12,6 +15,7 @@ def manager_required(view_func):
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
         if not request.user.is_authenticated:
+            logger.warning("Unauthenticated access attempt to manager view '%s'", view_func.__name__)
             return redirect('work_time_reporter:login')
 
         is_manager = (
@@ -20,6 +24,11 @@ def manager_required(view_func):
             or request.user.groups.filter(name='Project Manager').exists()
         )
         if not is_manager:
+            logger.warning(
+                "Unauthorized access to manager view '%s' denied for user %s",
+                view_func.__name__,
+                request.user.username,
+            )
             messages.warning(request, "Access denied. You are not a manager of any active project.")
             return redirect('work_time_reporter:dashboard')
 
@@ -36,6 +45,7 @@ def admin_required(view_func):
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
         if not request.user.is_authenticated:
+            logger.warning("Unauthenticated access attempt to admin view '%s'", view_func.__name__)
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return JsonResponse({'status': 'error', 'message': 'Authentication required'}, status=401)
             return redirect('work_time_reporter:login')
@@ -46,6 +56,11 @@ def admin_required(view_func):
             or request.user.groups.filter(name='Admin').exists()
         )
         if not is_admin:
+            logger.warning(
+                "Unauthorized access to admin view '%s' denied for user %s",
+                view_func.__name__,
+                request.user.username,
+            )
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return JsonResponse({'status': 'error', 'message': 'Permission denied'}, status=403)
             messages.error(request, "Access denied. Administrator privileges required.")
