@@ -1,0 +1,27 @@
+{% if action == 'approve' %}
+<tr id="timesheet-row-{{ timesheet.id }}" class="bg-green-50 border-l-4 border-green-500 transition-all duration-300">
+    <td colspan="4" class="px-6 py-4">
+        <div class="flex items-center justify-between">
+            <span class="text-sm font-semibold text-green-900">
+                ✅ Timesheet #{{ timesheet.id }} for <strong>{{ timesheet.user.get_full_name|default:timesheet.user.username }}</strong> approved!
+            </span>
+            <span class="text-xs text-green-700 bg-green-100 px-2.5 py-1 rounded-full font-medium">
+                Approved
+            </span>
+        </div>
+    </td>
+</tr>
+{% elif action == 'reject' %}
+<tr id="timesheet-row-{{ timesheet.id }}" class="bg-amber-50 border-l-4 border-amber-500 transition-all duration-300">
+    <td colspan="4" class="px-6 py-4">
+        <div class="flex items-center justify-between">
+            <span class="text-sm font-semibold text-amber-900">
+                ❌ Timesheet #{{ timesheet.id }} for <strong>{{ timesheet.user.get_full_name|default:timesheet.user.username }}</strong> returned to draft with feedback.
+            </span>
+            <span class="text-xs text-amber-700 bg-amber-100 px-2.5 py-1 rounded-full font-medium">
+                Returned to Draft
+            </span>
+        </div>
+    </td>
+</tr>
+{% endif %}
