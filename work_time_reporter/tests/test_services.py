@@ -1,4 +1,5 @@
 import datetime
+import logging
 import pytest
 from django.utils import timezone
 
@@ -542,3 +543,101 @@ class TestCalendarService:
         all_days = [day for week in january['weeks'] for day in week if day]
         jan1 = next(d for d in all_days if d['date'] == datetime.date(2026, 1, 1))
         assert jan1['day_type'] == 'HOLIDAY'
+
+
+@pytest.mark.django_db
+class TestStructuredLogging:
+    """Verify structured logging for service operations."""
+
+    def test_save_draft_and_submit_logging(
+        self, engineer_user, active_task, draft_timesheet, caplog
+    ):
+        """Verify draft save, empty submit, valid submit, and recall are logged."""
+        monday = datetime.date.fromisocalendar(draft_timesheet.year, draft_timesheet.week_number, 1)
+        date_str = monday.strftime('%Y-%m-%d')
+
+        with caplog.at_level(logging.INFO, logger='work_time_reporter.services'):
+            # Save draft
+            post_data = {
+                'action': 'save',
+                f'hours_{active_task.id}_{date_str}': '8.0',
+            }
+            TimesheetService.save_timesheet_data(engineer_user, draft_timesheet, post_data)
+            assert f"Timesheet {draft_timesheet.id} (Year: {draft_timesheet.year}, Week: {draft_timesheet.week_number}) draft saved by user {engineer_user.username}" in caplog.text
+
+            caplog.clear()
+
+            # Submit with non-standard hours (8h != 40h)
+            post_data_submit = {
+                'action': 'submit',
+                f'hours_{active_task.id}_{date_str}': '8.0',
+            }
+            TimesheetService.save_timesheet_data(engineer_user, draft_timesheet, post_data_submit)
+            assert f"Timesheet {draft_timesheet.id} (Year: {draft_timesheet.year}, Week: {draft_timesheet.week_number}) submitted by user {engineer_user.username} with total 8.00 hours" in caplog.text
+            assert f"Timesheet {draft_timesheet.id} submitted with non-standard hours (8.00h) by user {engineer_user.username}" in caplog.text
+
+            caplog.clear()
+
+            # Recall
+            recall_data = {'action': 'recall'}
+            TimesheetService.save_timesheet_data(engineer_user, draft_timesheet, recall_data)
+            assert f"Timesheet {draft_timesheet.id} recalled to draft by user {engineer_user.username}" in caplog.text
+
+    def test_empty_submit_and_invalid_hours_logging(
+        self, engineer_user, active_task, draft_timesheet, caplog
+    ):
+        """Verify empty timesheet submission and invalid hours are logged as warnings."""
+        monday = datetime.date.fromisocalendar(draft_timesheet.year, draft_timesheet.week_number, 1)
+        date_str = monday.strftime('%Y-%m-%d')
+
+        with caplog.at_level(logging.WARNING, logger='work_time_reporter.services'):
+            # Empty submission
+            TimesheetService.save_timesheet_data(engineer_user, draft_timesheet, {'action': 'submit'})
+            assert f"User {engineer_user.username} attempted to submit empty timesheet {draft_timesheet.id}" in caplog.text
+
+            caplog.clear()
+
+            # Invalid hours (> 24)
+            invalid_data = {
+                'action': 'save',
+                f'hours_{active_task.id}_{date_str}': '25.0',
+            }
+            TimesheetService.save_timesheet_data(engineer_user, draft_timesheet, invalid_data)
+            assert f"Invalid hours value '25.0' submitted by user {engineer_user.username}" in caplog.text
+
+    def test_review_timesheet_logging(
+        self, manager_user, other_user, active_project, active_task, engineer_user, draft_timesheet, caplog
+    ):
+        """Verify timesheet approvals, rejections, and unauthorized reviews are logged."""
+        draft_timesheet.status = WeeklyTimesheet.Status.SUBMITTED
+        draft_timesheet.save()
+
+        with caplog.at_level(logging.INFO, logger='work_time_reporter.services'):
+            # Unauthorized review attempt
+            TimesheetService.review_timesheet(other_user, draft_timesheet.id, 'approve')
+            assert "Unauthorized review attempt" in caplog.text
+
+            caplog.clear()
+
+            # Rejection
+            TimesheetService.review_timesheet(manager_user, draft_timesheet.id, 'reject', 'Fix Friday hours')
+            assert f"Timesheet {draft_timesheet.id} (owner: {draft_timesheet.user.username}) rejected by manager {manager_user.username}. Feedback: Fix Friday hours" in caplog.text
+
+            caplog.clear()
+
+            # Resubmit and Approve
+            draft_timesheet.status = WeeklyTimesheet.Status.SUBMITTED
+            draft_timesheet.save()
+            TimesheetService.review_timesheet(manager_user, draft_timesheet.id, 'approve')
+            assert f"Timesheet {draft_timesheet.id} (owner: {draft_timesheet.user.username}) approved by manager {manager_user.username}" in caplog.text
+
+    def test_calendar_service_logging(self, caplog):
+        """Verify calendar day modifications are logged."""
+        with caplog.at_level(logging.INFO, logger='work_time_reporter.services'):
+            CalendarService.update_day('2026-09-01', 'SHORT_DAY')
+            assert "Company calendar updated for date 2026-09-01: day_type=SHORT_DAY" in caplog.text
+
+            caplog.clear()
+
+            CalendarService.update_day('2026-09-01', 'CLEAR')
+            assert "Company calendar customization cleared for date 2026-09-01" in caplog.text
