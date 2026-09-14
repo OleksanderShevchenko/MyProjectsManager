@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="{% static 'dist/styles.css' %}">
 
     <script src="{% static 'vendor/htmx.min.js' %}" defer></script>
+    <script src="{% static 'js/navigation.js' %}" defer></script>
     {% django_htmx_script %}
 </head>
 <body class="bg-gray-100 min-h-screen" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
@@ -16,8 +17,7 @@
     <nav class="bg-indigo-900 text-white shadow-lg">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16 items-center">
-                <div class="flex-shrink-0 font-bold text-xl tracking-wider">
-
+                <div class="flex items-center space-x-8">
                     <a href="{% url 'work_time_reporter:dashboard' %}" class="flex-shrink-0 font-bold text-xl tracking-wider text-white hover:text-indigo-200 transition">
                         ⏱️ MyProjectsManager
                     </a>
@@ -35,10 +35,10 @@
                             <a href="{% url 'msproject_import:pending' %}" class="text-indigo-100 hover:bg-indigo-800 px-3 py-2 rounded-md text-sm font-medium">Pending Imports</a>
                         {% endif %}
                     </div>
-
                 </div>
 
-                <div>
+                <!-- Desktop User & Logout -->
+                <div class="hidden md:flex items-center">
                     <span class="mr-4 text-sm text-indigo-200">User: <strong>{{ request.user.username }}</strong></span>
                     <form method="POST" action="{% url 'work_time_reporter:logout' %}" class="inline">
                         {% csrf_token %}
@@ -47,6 +47,50 @@
                         </button>
                     </form>
                 </div>
+
+                <!-- Mobile Hamburger Button -->
+                <div class="flex items-center md:hidden">
+                    <button id="mobile-menu-button" type="button"
+                            class="inline-flex items-center justify-center p-2 rounded-md text-indigo-200 hover:text-white hover:bg-indigo-800 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white transition cursor-pointer"
+                            aria-controls="mobile-menu"
+                            aria-expanded="false"
+                            aria-label="Open main menu">
+                        <span class="sr-only">Open main menu</span>
+                        <svg id="hamburger-icon" class="block h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                        <svg id="close-icon" class="hidden h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Menu Panel -->
+        <div id="mobile-menu" class="hidden md:hidden border-t border-indigo-800 bg-indigo-900 px-4 pt-2 pb-4 space-y-1">
+            <a href="{% url 'work_time_reporter:dashboard' %}" class="text-indigo-100 hover:bg-indigo-800 hover:text-white block px-3 py-2 rounded-md text-base font-medium">My Timesheet</a>
+            <a href="{% url 'work_time_reporter:yearly_dashboard' %}" class="text-indigo-100 hover:bg-indigo-800 hover:text-white block px-3 py-2 rounded-md text-base font-medium">Yearly Overview</a>
+            <a href="{% url 'msproject_import:start' %}" class="text-indigo-100 hover:bg-indigo-800 block px-3 py-2 rounded-md text-base font-medium">Import PWA</a>
+            <a href="{% url 'work_time_reporter:progress_dashboard_current' %}" class="text-indigo-100 hover:bg-indigo-800 block px-3 py-2 rounded-md text-base font-medium">Progress Tracker</a>
+            <a href="{% url 'work_time_reporter:calendar_settings_current' %}" class="text-indigo-100 hover:bg-indigo-800 block px-3 py-2 rounded-md text-base font-medium">Calendar</a>
+            {% if request.user.is_active_manager %}
+                <a href="{% url 'work_time_reporter:team_approvals' %}" class="text-white bg-indigo-800 hover:bg-indigo-700 block px-3 py-2 rounded-md text-base font-medium shadow-inner">Team Approvals</a>
+            {% endif %}
+            {% if user.is_staff %}
+                <a href="{% url 'msproject_import:pending' %}" class="text-indigo-100 hover:bg-indigo-800 block px-3 py-2 rounded-md text-base font-medium">Pending Imports</a>
+            {% endif %}
+
+            <div class="pt-4 pb-2 border-t border-indigo-800 mt-3">
+                <div class="px-3 text-sm text-indigo-200 mb-2">
+                    Signed in as: <strong class="text-white">{{ request.user.username }}</strong>
+                </div>
+                <form method="POST" action="{% url 'work_time_reporter:logout' %}" class="px-3">
+                    {% csrf_token %}
+                    <button type="submit" class="w-full text-left bg-indigo-700 hover:bg-indigo-600 px-3 py-2 rounded-md text-base font-medium text-white transition cursor-pointer">
+                        Logout
+                    </button>
+                </form>
             </div>
         </div>
     </nav>
