@@ -25,6 +25,10 @@ staticfiles/
 logs/
 *.log
 
+# Node & Frontend dependencies
+node_modules/
+npm-debug.log*
+
 # IDE & Editor settings
 .idea/
 .vscode/
