@@ -26,52 +26,75 @@ class TimesheetService:
                 with transaction.atomic():
                     # Process form data
                     for key, value in post_data.items():
-                        if key.startswith('hours_'):
-                            parts = key.split('_')
-                            task_id = parts[1]
-                            date_str = parts[2]
-                            hours_str = value.strip()
+                        if not key.startswith('hours_'):
+                            continue
 
-                            comment_key = f"comment_{task_id}_{date_str}"
-                            comment_val = post_data.get(comment_key, '').strip()
+                        parts = key.split('_')
+                        if len(parts) < 3:
+                            continue
 
-                            if hours_str:
-                                try:
-                                    hours_val = float(hours_str)
-                                    if hours_val > 0:
-                                        task = Task.objects.get(id=task_id)
-                                        log_date = datetime.date.fromisoformat(date_str)
-                                        TimeLog.objects.update_or_create(
-                                            user=user,
-                                            task=task,
-                                            date=log_date,
-                                            defaults={
-                                                'hours': hours_val,
-                                                'comment': comment_val,
-                                                'timesheet': timesheet
-                                            }
-                                        )
-                                    elif hours_val == 0:
-                                        task = Task.objects.get(id=task_id)
-                                        log_date = datetime.date.fromisoformat(date_str)
-                                        TimeLog.objects.filter(
-                                            user=user,
-                                            task=task,
-                                            date=log_date
-                                        ).delete()
-                                except (Task.DoesNotExist, ValueError):
-                                    pass
-                            else:
-                                try:
-                                    task = Task.objects.get(id=task_id)
-                                    log_date = datetime.date.fromisoformat(date_str)
-                                    TimeLog.objects.filter(
-                                        user=user,
-                                        task=task,
-                                        date=log_date
-                                    ).delete()
-                                except (Task.DoesNotExist, ValueError):
-                                    pass
+                        task_id = parts[1]
+                        date_str = parts[2]
+                        hours_str = value.strip()
+
+                        comment_key = f"comment_{task_id}_{date_str}"
+                        comment_val = post_data.get(comment_key, '').strip()
+
+                        try:
+                            task = Task.objects.select_related('project').get(id=task_id)
+                            log_date = datetime.date.fromisoformat(date_str)
+                        except (Task.DoesNotExist, ValueError):
+                            continue
+
+                        # Validate task is assigned to the user
+                        if not task.assignees.filter(id=user.id).exists():
+                            continue
+
+                        # Validate task's project is active (for non-admin users)
+                        is_admin = user.is_superuser or getattr(user, 'is_admin_role', False)
+                        if not task.project.is_active and not is_admin:
+                            continue
+
+                        if hours_str:
+                            try:
+                                hours_val = float(hours_str)
+                            except ValueError:
+                                return {
+                                    'success': False,
+                                    'message': f"Invalid hours value '{hours_str}'. Must be a valid number.",
+                                    'type': 'error'
+                                }
+
+                            if hours_val < 0 or hours_val > 24:
+                                return {
+                                    'success': False,
+                                    'message': "Hours must be between 0 and 24.",
+                                    'type': 'error'
+                                }
+
+                            if hours_val > 0:
+                                TimeLog.objects.update_or_create(
+                                    user=user,
+                                    task=task,
+                                    date=log_date,
+                                    defaults={
+                                        'hours': hours_val,
+                                        'comment': comment_val,
+                                        'timesheet': timesheet
+                                    }
+                                )
+                            elif hours_val == 0:
+                                TimeLog.objects.filter(
+                                    user=user,
+                                    task=task,
+                                    date=log_date
+                                ).delete()
+                        else:
+                            TimeLog.objects.filter(
+                                user=user,
+                                task=task,
+                                date=log_date
+                            ).delete()
                     # Change the status if you clicked Submit
                     if action == 'submit':
                         logs = TimeLog.objects.filter(timesheet=timesheet)
