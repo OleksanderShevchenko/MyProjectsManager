@@ -3,11 +3,11 @@ import json
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse, HttpResponseForbidden
 from django.shortcuts import render, redirect
 from django.utils import timezone
 
-from .models import CompanyCalendar
+from .models import CompanyCalendar, WeeklyTimesheet
 from .services import TimesheetService, CalendarService
 from .decorators import manager_required
 
@@ -77,6 +77,16 @@ def team_approvals(request):
         action = request.POST.get('action')
         comment = request.POST.get('rejection_comment', '')
         result = TimesheetService.review_timesheet(request.user, timesheet_id, action, comment)
+
+        if getattr(request, 'htmx', False):
+            if result['success']:
+                timesheet = WeeklyTimesheet.objects.select_related('user').filter(id=timesheet_id).first()
+                return render(request, 'work_time_reporter/partials/timesheet_approval_status_row.html', {
+                    'timesheet': timesheet,
+                    'timesheet_id': timesheet_id,
+                    'action': action,
+                })
+            return HttpResponse(result['message'], status=400)
 
         if result['success']:
             if result['type'] == 'success':
@@ -167,18 +177,46 @@ def calendar_settings(request, year: int = None):
 
     is_admin = getattr(request.user, 'is_admin_role', False) or request.user.is_superuser
 
-    if request.method == 'POST' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        if not is_admin:
-            return JsonResponse({'status': 'error', 'message': 'Permission denied'}, status=403)
+    if request.method == 'POST':
+        is_htmx = getattr(request, 'htmx', False)
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
-        data = json.loads(request.body)
-        date_str = data.get('date')
-        new_type = data.get('type')
+        if is_htmx or is_ajax:
+            if not is_admin:
+                if is_htmx:
+                    return HttpResponseForbidden("Permission denied")
+                return JsonResponse({'status': 'error', 'message': 'Permission denied'}, status=403)
 
-        result = CalendarService.update_day(date_str, new_type)
-        if result['success']:
-            return JsonResponse({'status': 'success'})
-        return JsonResponse({'status': 'error', 'message': result.get('message', 'Error')}, status=400)
+            if is_htmx:
+                date_str = request.POST.get('date')
+                new_type = request.POST.get('type')
+            else:
+                data = json.loads(request.body)
+                date_str = data.get('date')
+                new_type = data.get('type')
+
+            result = CalendarService.update_day(date_str, new_type)
+            if result['success']:
+                if is_htmx:
+                    target_date = datetime.datetime.strptime(date_str, '%Y-%m-%d').date()
+                    day_type = new_type if new_type != 'CLEAR' else None
+                    day_obj = {
+                        'date': target_date,
+                        'day_num': target_date.day,
+                        'is_weekend': target_date.weekday() >= 5,
+                        'day_type': day_type,
+                        'next_type': CalendarService.get_next_day_type(day_type),
+                    }
+                    return render(request, 'work_time_reporter/partials/calendar_day_cell.html', {
+                        'day': day_obj,
+                        'is_admin': is_admin,
+                        'year': year,
+                    })
+                return JsonResponse({'status': 'success'})
+
+            if is_htmx:
+                return HttpResponse(result.get('message', 'Error'), status=400)
+            return JsonResponse({'status': 'error', 'message': result.get('message', 'Error')}, status=400)
 
     months_data = CalendarService.get_year_calendar_data(year)
     context = {
