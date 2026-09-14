@@ -43,7 +43,9 @@
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex justify-end space-x-2">
 
-                       <a href="{% url 'work_time_reporter:timesheet_detail' ts.id %}" class="bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white px-3 py-1.5 rounded-md border border-blue-200 hover:border-transparent transition-colors shadow-sm">
+                       <a href="{% url 'work_time_reporter:timesheet_detail' ts.id %}"
+                          aria-label="View details for timesheet #{{ ts.id }} (Week {{ ts.week_number }}, {{ ts.year }})"
+                          class="bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white px-3 py-1.5 rounded-md border border-blue-200 hover:border-transparent transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                             👁️ View Details
                        </a>
 
@@ -52,23 +54,32 @@
                             <input type="hidden" name="timesheet_id" value="{{ ts.id }}">
                             <button
                                 type="button"
+                                aria-label="Approve timesheet #{{ ts.id }} for {{ ts.user.get_full_name|default:ts.user.username }} (Week {{ ts.week_number }})"
                                 hx-post="{% url 'work_time_reporter:team_approvals' %}"
                                 hx-vals='{"timesheet_id": "{{ ts.id }}", "action": "approve"}'
                                 hx-target="#timesheet-row-{{ ts.id }}"
                                 hx-swap="outerHTML"
-                                class="bg-green-50 text-green-700 hover:bg-green-600 hover:text-white px-3 py-1.5 rounded-md border border-green-200 hover:border-transparent transition-colors shadow-sm cursor-pointer">
+                                class="bg-green-50 text-green-700 hover:bg-green-600 hover:text-white px-3 py-1.5 rounded-md border border-green-200 hover:border-transparent transition-colors shadow-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-green-500">
                                 ✅ Approve
                             </button>
-                            <button type="button" onclick="document.getElementById('reject-modal-{{ ts.id }}').classList.remove('hidden')" class="bg-red-50 text-red-700 hover:bg-red-600 hover:text-white px-3 py-1.5 rounded-md border border-red-200 hover:border-transparent transition-colors shadow-sm cursor-pointer">
+                            <button type="button"
+                                    aria-label="Reject timesheet #{{ ts.id }} for {{ ts.user.get_full_name|default:ts.user.username }} (Week {{ ts.week_number }})"
+                                    onclick="document.getElementById('reject-modal-{{ ts.id }}').classList.remove('hidden')"
+                                    class="bg-red-50 text-red-700 hover:bg-red-600 hover:text-white px-3 py-1.5 rounded-md border border-red-200 hover:border-transparent transition-colors shadow-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-red-500">
                                 ❌ Reject
                             </button>
                         </form>
 
                         <!-- Rejection Modal -->
-                        <div id="reject-modal-{{ ts.id }}" class="hidden fixed inset-0 z-50 overflow-y-auto bg-gray-900/50 flex items-center justify-center p-4 text-left">
+                        <div id="reject-modal-{{ ts.id }}"
+                             role="dialog"
+                             aria-modal="true"
+                             aria-labelledby="reject-title-{{ ts.id }}"
+                             aria-describedby="reject-desc-{{ ts.id }}"
+                             class="hidden fixed inset-0 z-50 overflow-y-auto bg-gray-900/50 flex items-center justify-center p-4 text-left">
                             <div class="bg-white rounded-lg max-w-md w-full p-6 shadow-xl border border-gray-200">
-                                <h3 class="text-lg font-bold text-gray-900 mb-2">Reject Timesheet</h3>
-                                <p class="text-sm text-gray-500 mb-4">
+                                <h3 id="reject-title-{{ ts.id }}" class="text-lg font-bold text-gray-900 mb-2">Reject Timesheet</h3>
+                                <p id="reject-desc-{{ ts.id }}" class="text-sm text-gray-500 mb-4">
                                     Provide feedback for <strong>{{ ts.user.get_full_name|default:ts.user.username }}</strong> (Week {{ ts.week_number }}, {{ ts.year }}):
                                 </p>
                                 <form
@@ -80,10 +91,11 @@
                                     {% csrf_token %}
                                     <input type="hidden" name="timesheet_id" value="{{ ts.id }}">
                                     <input type="hidden" name="action" value="reject">
-                                    <textarea name="rejection_comment" rows="3" required placeholder="Explain why the timesheet was rejected and what to fix..." class="w-full border border-gray-300 rounded-md p-2.5 text-sm focus:ring-red-500 focus:border-red-500 mb-4"></textarea>
+                                    <label for="reject-comment-{{ ts.id }}" class="sr-only">Rejection comment</label>
+                                    <textarea id="reject-comment-{{ ts.id }}" name="rejection_comment" rows="3" required placeholder="Explain why the timesheet was rejected and what to fix..." class="w-full border border-gray-300 rounded-md p-2.5 text-sm focus:ring-red-500 focus:border-red-500 mb-4"></textarea>
                                     <div class="flex justify-end space-x-3">
-                                        <button type="button" onclick="document.getElementById('reject-modal-{{ ts.id }}').classList.add('hidden')" class="px-3.5 py-2 text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors">Cancel</button>
-                                        <button type="submit" class="px-3.5 py-2 text-sm text-white bg-red-600 hover:bg-red-700 rounded-md font-medium shadow-sm transition-colors cursor-pointer">Confirm Rejection</button>
+                                        <button type="button" aria-label="Cancel rejection" onclick="document.getElementById('reject-modal-{{ ts.id }}').classList.add('hidden')" class="px-3.5 py-2 text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400">Cancel</button>
+                                        <button type="submit" aria-label="Confirm timesheet rejection" class="px-3.5 py-2 text-sm text-white bg-red-600 hover:bg-red-700 rounded-md font-medium shadow-sm transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-red-500">Confirm Rejection</button>
                                     </div>
                                 </form>
                             </div>
