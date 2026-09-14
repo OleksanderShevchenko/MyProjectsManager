@@ -226,3 +226,85 @@ class TestHtmxIntegration:
         regular_request.user = engineer_user
         regular_response = middleware(regular_request)
         assert regular_response.content == b"STANDARD"
+
+    def test_calendar_settings_htmx_post_updates_and_returns_partial(
+        self, client, engineer_user
+    ):
+        """Admin HTMX POST to calendar settings updates day and returns calendar_day_cell partial."""
+        engineer_user.is_superuser = True
+        engineer_user.save()
+        client.force_login(engineer_user)
+
+        url = reverse('work_time_reporter:calendar_settings', kwargs={'year': 2026})
+        response = client.post(
+            url,
+            data={'date': '2026-10-14', 'type': 'HOLIDAY'},
+            HTTP_HX_REQUEST='true'
+        )
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        assert 'id="day-cell-2026-10-14"' in content
+        assert 'bg-red-100' in content
+        assert 'HOLIDAY' in content
+
+    def test_calendar_settings_htmx_post_denies_non_admin(
+        self, client, engineer_user
+    ):
+        """Non-admin HTMX POST to calendar settings receives 403 Forbidden."""
+        client.force_login(engineer_user)
+        url = reverse('work_time_reporter:calendar_settings', kwargs={'year': 2026})
+        response = client.post(
+            url,
+            data={'date': '2026-10-14', 'type': 'HOLIDAY'},
+            HTTP_HX_REQUEST='true'
+        )
+        assert response.status_code == 403
+
+    def test_team_approvals_htmx_approve_returns_status_row(
+        self, client, manager_user, active_project, active_task, draft_timesheet
+    ):
+        """Manager HTMX approve action returns timesheet_approval_status_row partial."""
+        draft_timesheet.status = WeeklyTimesheet.Status.SUBMITTED
+        draft_timesheet.save()
+
+        client.force_login(manager_user)
+        url = reverse('work_time_reporter:team_approvals')
+        response = client.post(
+            url,
+            data={'timesheet_id': draft_timesheet.id, 'action': 'approve'},
+            HTTP_HX_REQUEST='true'
+        )
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        assert f'id="timesheet-row-{draft_timesheet.id}"' in content
+        assert 'approved!' in content
+
+        draft_timesheet.refresh_from_db()
+        assert draft_timesheet.status == WeeklyTimesheet.Status.APPROVED
+
+    def test_team_approvals_htmx_reject_returns_status_row(
+        self, client, manager_user, active_project, active_task, draft_timesheet
+    ):
+        """Manager HTMX reject action returns timesheet_approval_status_row partial."""
+        draft_timesheet.status = WeeklyTimesheet.Status.SUBMITTED
+        draft_timesheet.save()
+
+        client.force_login(manager_user)
+        url = reverse('work_time_reporter:team_approvals')
+        response = client.post(
+            url,
+            data={
+                'timesheet_id': draft_timesheet.id,
+                'action': 'reject',
+                'rejection_comment': 'Please revise Thursday hours'
+            },
+            HTTP_HX_REQUEST='true'
+        )
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        assert f'id="timesheet-row-{draft_timesheet.id}"' in content
+        assert 'returned to draft' in content
+
+        draft_timesheet.refresh_from_db()
+        assert draft_timesheet.status == WeeklyTimesheet.Status.DRAFT
+        assert draft_timesheet.rejection_comment == 'Please revise Thursday hours'
