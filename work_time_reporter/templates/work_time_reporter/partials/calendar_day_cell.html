@@ -2,7 +2,7 @@
     id="day-cell-{{ day.date|date:'Y-m-d' }}"
     type="button"
     {% if is_admin %}
-    hx-post="{% url 'work_time_reporter:calendar_settings_year' year=year %}"
+    hx-post="{% url 'work_time_reporter:calendar_settings' year=year %}"
     hx-vals='{"date": "{{ day.date|date:"Y-m-d" }}", "type": "{{ day.next_type }}"}'
     hx-target="this"
     hx-swap="outerHTML"
