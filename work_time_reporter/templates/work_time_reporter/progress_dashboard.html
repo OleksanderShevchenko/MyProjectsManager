@@ -27,12 +27,20 @@
             </div>
 
             <div class="flex items-center space-x-4 bg-white px-4 py-2 rounded-lg border border-gray-200 shadow-sm">
-                <a href="{% url 'work_time_reporter:progress_dashboard' year|add:'-1' %}" class="text-gray-500 hover:text-indigo-600 transition">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                <a href="{% url 'work_time_reporter:progress_dashboard' year|add:'-1' %}"
+                   class="text-gray-500 hover:text-indigo-600 transition focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded p-1"
+                   title="Previous Year ({{ year|add:'-1' }})"
+                   aria-label="Previous Year ({{ year|add:'-1' }})">
+                    <span class="sr-only">Previous Year ({{ year|add:'-1' }})</span>
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
                 </a>
                 <span class="text-xl font-bold text-gray-800">{{ year }}</span>
-                <a href="{% url 'work_time_reporter:progress_dashboard' year|add:'1' %}" class="text-gray-500 hover:text-indigo-600 transition">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                <a href="{% url 'work_time_reporter:progress_dashboard' year|add:'1' %}"
+                   class="text-gray-500 hover:text-indigo-600 transition focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded p-1"
+                   title="Next Year ({{ year|add:'1' }})"
+                   aria-label="Next Year ({{ year|add:'1' }})">
+                    <span class="sr-only">Next Year ({{ year|add:'1' }})</span>
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                 </a>
             </div>
         </div>
@@ -60,7 +68,12 @@
                             <span>Project Timeline</span>
                             <span>{{ item.time_pct|floatformat:0 }}%</span>
                         </div>
-                        <div class="relative w-full h-3 bg-gray-100 rounded-full">
+                        <div class="relative w-full h-3 bg-gray-100 rounded-full"
+                             role="progressbar"
+                             aria-valuenow="{{ item.time_pct|floatformat:0 }}"
+                             aria-valuemin="0"
+                             aria-valuemax="100"
+                             aria-label="Timeline progress for {{ item.project.name }}">
                             <div class="h-full bg-blue-500 rounded-full" style="width: {{ item.time_pct }}%"></div>
                         </div>
                     </div>
@@ -70,7 +83,12 @@
                             <span>Budget Utilization</span>
                             <span>{{ item.budget_pct|floatformat:0 }}%</span>
                         </div>
-                        <div class="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
+                        <div class="w-full h-3 bg-gray-100 rounded-full overflow-hidden"
+                             role="progressbar"
+                             aria-valuenow="{{ item.budget_pct|floatformat:0 }}"
+                             aria-valuemin="0"
+                             aria-valuemax="100"
+                             aria-label="Budget utilization for {{ item.project.name }}">
                             <div class="h-full {% if item.is_overbudget %}bg-red-500{% else %}bg-green-500{% endif %} rounded-full" style="width: {{ item.budget_pct }}%"></div>
                         </div>
                     </div>
@@ -127,7 +145,12 @@
 
                         <div class="w-2/3 grid grid-cols-2 gap-8">
 
-                            <div class="relative w-full h-2.5 bg-gray-200 rounded-full overflow-visible flex items-center">
+                            <div class="relative w-full h-2.5 bg-gray-200 rounded-full overflow-visible flex items-center"
+                                 role="progressbar"
+                                 aria-valuenow="{{ row.time_pct|floatformat:0 }}"
+                                 aria-valuemin="0"
+                                 aria-valuemax="100"
+                                 aria-label="Timeline progress for task {{ row.task.title }}">
                                 <div class="h-full bg-blue-400 rounded-full" style="width: {{ row.time_pct }}%"></div>
 
                                 <div class="absolute w-3 h-5 bg-white border-2 border-blue-600 rounded shadow"
@@ -136,7 +159,12 @@
                                 </div>
                             </div>
 
-                            <div class="relative w-full h-2.5 bg-gray-200 rounded-full overflow-hidden">
+                            <div class="relative w-full h-2.5 bg-gray-200 rounded-full overflow-hidden"
+                                 role="progressbar"
+                                 aria-valuenow="{{ row.budget_pct|floatformat:0 }}"
+                                 aria-valuemin="0"
+                                 aria-valuemax="100"
+                                 aria-label="Budget utilization for task {{ row.task.title }}">
                                 <div class="h-full rounded-full transition-all duration-500 {% if row.overbudget %}bg-red-500{% else %}bg-green-500{% endif %}"
                                      style="width: {{ row.budget_pct }}%">
                                 </div>
