@@ -1,4 +1,5 @@
 import json
+import logging
 import pytest
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
@@ -375,3 +376,50 @@ class TestRoleBasedAuthorization:
         )
         assert response.status_code == 200
         assert response.json()['status'] == 'success'
+
+    def test_security_audit_logging_in_decorators(self, rf, engineer_user, caplog):
+        """Verify unauthenticated and unauthorized access attempts are logged as warnings."""
+        from django.contrib.auth.models import AnonymousUser
+
+        @manager_required
+        def dummy_manager_view(request):
+            from django.http import HttpResponse
+            return HttpResponse("OK")
+
+        @admin_required
+        def dummy_admin_view(request):
+            from django.http import HttpResponse
+            return HttpResponse("OK")
+
+        with caplog.at_level(logging.WARNING, logger='work_time_reporter.decorators'):
+            # Unauthenticated manager view attempt
+            anon_request = rf.get('/dummy-mgr/')
+            anon_request.user = AnonymousUser()
+            dummy_manager_view(anon_request)
+            assert "Unauthenticated access attempt to manager view 'dummy_manager_view'" in caplog.text
+
+            caplog.clear()
+
+            # Unauthorized manager view attempt
+            eng_request = rf.get('/dummy-mgr/')
+            eng_request.user = engineer_user
+            self._attach_session_and_messages(eng_request)
+            dummy_manager_view(eng_request)
+            assert f"Unauthorized access to manager view 'dummy_manager_view' denied for user {engineer_user.username}" in caplog.text
+
+            caplog.clear()
+
+            # Unauthenticated admin view attempt
+            anon_admin_request = rf.get('/dummy-admin/')
+            anon_admin_request.user = AnonymousUser()
+            dummy_admin_view(anon_admin_request)
+            assert "Unauthenticated access attempt to admin view 'dummy_admin_view'" in caplog.text
+
+            caplog.clear()
+
+            # Unauthorized admin view attempt
+            eng_admin_request = rf.get('/dummy-admin/')
+            eng_admin_request.user = engineer_user
+            self._attach_session_and_messages(eng_admin_request)
+            dummy_admin_view(eng_admin_request)
+            assert f"Unauthorized access to admin view 'dummy_admin_view' denied for user {engineer_user.username}" in caplog.text
