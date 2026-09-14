@@ -191,3 +191,38 @@ class TestCalendarSettingsView:
         assert response.status_code == 200
         assert 'months_data' in response.context
         assert len(response.context['months_data']) == 12
+
+
+@pytest.mark.django_db
+class TestHtmxIntegration:
+    """Verify HTMX static asset loading, middleware detection, and CSRF configuration."""
+
+    def test_base_template_includes_htmx_and_csrf_headers(self, engineer_client):
+        """Pages inheriting base.html must load local vendor htmx.min.js and global CSRF headers."""
+        url = reverse('work_time_reporter:calendar_settings_current')
+        response = engineer_client.get(url)
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        assert 'vendor/htmx.min.js' in content
+        assert 'hx-headers=' in content
+        assert 'X-CSRFToken' in content
+
+    def test_htmx_middleware_populates_request_htmx(self, rf, engineer_user):
+        """Requests with HX-Request header must have request.htmx == True via HtmxMiddleware."""
+        from django_htmx.middleware import HtmxMiddleware
+        from django.http import HttpResponse
+
+        def dummy_view(request):
+            return HttpResponse("HTMX" if request.htmx else "STANDARD")
+
+        request = rf.get('/dummy/', HTTP_HX_REQUEST='true')
+        request.user = engineer_user
+        middleware = HtmxMiddleware(dummy_view)
+        response = middleware(request)
+        assert response.content == b"HTMX"
+
+        # Non-HTMX request
+        regular_request = rf.get('/dummy/')
+        regular_request.user = engineer_user
+        regular_response = middleware(regular_request)
+        assert regular_response.content == b"STANDARD"
