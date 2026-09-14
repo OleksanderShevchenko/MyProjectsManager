@@ -671,7 +671,8 @@ class CalendarService:
                             'date': day,
                             'day_num': day.day,
                             'is_weekend': is_weekend,
-                            'day_type': day_type
+                            'day_type': day_type,
+                            'next_type': CalendarService.get_next_day_type(day_type),
                         })
                     else:
                         week_days.append(None)
@@ -682,3 +683,18 @@ class CalendarService:
                 'weeks': month_weeks
             })
         return months_data
+
+    @staticmethod
+    def get_next_day_type(current_type: str | None) -> str:
+        """
+        Returns the next day type in the rotation cycle:
+        Standard (None) -> HOLIDAY -> SHORT_DAY -> FREE_MONDAY -> CLEAR (Standard).
+        """
+        cycle = {
+            None: 'HOLIDAY',
+            '': 'HOLIDAY',
+            'HOLIDAY': 'SHORT_DAY',
+            'SHORT_DAY': 'FREE_MONDAY',
+            'FREE_MONDAY': 'CLEAR',
+        }
+        return cycle.get(current_type, 'HOLIDAY')
