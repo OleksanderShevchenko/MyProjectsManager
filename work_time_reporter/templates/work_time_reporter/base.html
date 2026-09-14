@@ -13,6 +13,9 @@
     {% django_htmx_script %}
 </head>
 <body class="bg-gray-100 min-h-screen" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-indigo-600 text-white px-4 py-2 rounded-md shadow-md z-50 focus:outline-none focus:ring-2 focus:ring-white">
+        Skip to main content
+    </a>
 
     <nav class="bg-indigo-900 text-white shadow-lg">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -42,7 +45,7 @@
                     <span class="mr-4 text-sm text-indigo-200">User: <strong>{{ request.user.username }}</strong></span>
                     <form method="POST" action="{% url 'work_time_reporter:logout' %}" class="inline">
                         {% csrf_token %}
-                        <button type="submit" class="bg-indigo-700 hover:bg-indigo-600 px-3 py-2 rounded text-sm transition cursor-pointer">
+                        <button type="submit" aria-label="Log out of system" class="bg-indigo-700 hover:bg-indigo-600 px-3 py-2 rounded text-sm transition cursor-pointer">
                             Logout
                         </button>
                     </form>
@@ -87,7 +90,7 @@
                 </div>
                 <form method="POST" action="{% url 'work_time_reporter:logout' %}" class="px-3">
                     {% csrf_token %}
-                    <button type="submit" class="w-full text-left bg-indigo-700 hover:bg-indigo-600 px-3 py-2 rounded-md text-base font-medium text-white transition cursor-pointer">
+                    <button type="submit" aria-label="Log out of system" class="w-full text-left bg-indigo-700 hover:bg-indigo-600 px-3 py-2 rounded-md text-base font-medium text-white transition cursor-pointer">
                         Logout
                     </button>
                 </form>
@@ -95,12 +98,14 @@
         </div>
     </nav>
 
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <main id="main-content" tabindex="-1" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 focus:outline-none">
 
         {% if messages %}
             <div class="mb-6 space-y-2">
                 {% for message in messages %}
-                    <div class="p-4 rounded-lg flex items-center shadow-sm
+                    <div role="{% if message.tags == 'error' %}alert{% else %}status{% endif %}"
+                         aria-live="polite"
+                         class="p-4 rounded-lg flex items-center shadow-sm
                         {% if message.tags == 'success' %}bg-green-50 text-green-800 border border-green-200
                         {% elif message.tags == 'error' %}bg-red-50 text-red-800 border border-red-200
                         {% elif message.tags == 'info' %}bg-blue-50 text-blue-800 border border-blue-200
