@@ -1,8 +1,12 @@
+import json
 import pytest
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
+from django.core.management import call_command
 from django.urls import reverse
 from django.utils import timezone
 
+from work_time_reporter.decorators import admin_required, manager_required
 from work_time_reporter.models import (
     WeeklyTimesheet,
     TimeLog
@@ -250,3 +254,124 @@ class TestTimesheetDetailAuthorization:
         draft_timesheet.refresh_from_db()
         assert draft_timesheet.status == WeeklyTimesheet.Status.DRAFT
         assert draft_timesheet.rejection_comment == 'Exceeded daily limit on Friday'
+
+
+@pytest.mark.django_db
+class TestRoleBasedAuthorization:
+    """Verify role definitions, decorators, and group management."""
+
+    def test_create_default_groups_command(self):
+        """Management command create_default_groups creates Engineer, Project Manager, Admin groups."""
+        call_command('create_default_groups')
+
+        engineer_group = Group.objects.get(name='Engineer')
+        manager_group = Group.objects.get(name='Project Manager')
+        admin_group = Group.objects.get(name='Admin')
+
+        assert engineer_group.permissions.filter(codename='add_timelog').exists()
+        assert manager_group.permissions.filter(codename='add_project').exists()
+        assert admin_group.permissions.count() >= 24
+
+    def test_custom_user_role_properties(self, engineer_user, manager_user):
+        """Verify CustomUser role helper properties."""
+        call_command('create_default_groups')
+        eng_group = Group.objects.get(name='Engineer')
+        admin_group = Group.objects.get(name='Admin')
+
+        assert engineer_user.is_active_manager is False
+        assert engineer_user.is_admin_role is False
+        assert engineer_user.is_engineer_role is True
+
+        engineer_user.groups.add(admin_group)
+        assert engineer_user.is_admin_role is True
+
+        engineer_user.groups.remove(admin_group)
+        engineer_user.groups.add(eng_group)
+        assert engineer_user.is_engineer_role is True
+
+    def test_user_in_manager_group_can_access_team_approvals(self, client, engineer_user):
+        """User in 'Project Manager' group can access team approvals even without assigned projects."""
+        call_command('create_default_groups')
+        mgr_group = Group.objects.get(name='Project Manager')
+        engineer_user.groups.add(mgr_group)
+
+        client.force_login(engineer_user)
+        url = reverse('work_time_reporter:team_approvals')
+        response = client.get(url)
+        assert response.status_code == 200
+
+    @staticmethod
+    def _attach_session_and_messages(request):
+        from django.contrib.sessions.middleware import SessionMiddleware
+        from django.contrib.messages.middleware import MessageMiddleware
+        SessionMiddleware(lambda r: None).process_request(request)
+        MessageMiddleware(lambda r: None).process_request(request)
+
+    def test_manager_required_decorator(self, rf, engineer_user, manager_user, active_project):
+        """Verify manager_required decorator blocks non-managers and allows active managers."""
+        @manager_required
+        def dummy_manager_view(request):
+            from django.http import HttpResponse
+            return HttpResponse("MANAGER_OK")
+
+        # Non-manager request
+        request = rf.get('/dummy-mgr/')
+        request.user = engineer_user
+        self._attach_session_and_messages(request)
+        response = dummy_manager_view(request)
+        assert response.status_code == 302
+        assert reverse('work_time_reporter:dashboard') in response.url
+
+        # Active manager request
+        request_mgr = rf.get('/dummy-mgr/')
+        request_mgr.user = manager_user
+        self._attach_session_and_messages(request_mgr)
+        response_mgr = dummy_manager_view(request_mgr)
+        assert response_mgr.status_code == 200
+        assert response_mgr.content == b"MANAGER_OK"
+
+    def test_admin_required_decorator(self, rf, engineer_user):
+        """Verify admin_required decorator redirects regular user and returns 403 on AJAX."""
+        @admin_required
+        def dummy_admin_view(request):
+            from django.http import HttpResponse
+            return HttpResponse("OK")
+
+        # Regular GET from engineer
+        request = rf.get('/dummy/')
+        request.user = engineer_user
+        self._attach_session_and_messages(request)
+        response = dummy_admin_view(request)
+        assert response.status_code == 302
+        assert reverse('work_time_reporter:dashboard') in response.url
+
+        # AJAX request from engineer
+        ajax_request = rf.post('/dummy/', HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        ajax_request.user = engineer_user
+        ajax_response = dummy_admin_view(ajax_request)
+        assert ajax_response.status_code == 403
+
+        # Superuser access
+        engineer_user.is_superuser = True
+        engineer_user.save()
+        allowed_response = dummy_admin_view(request)
+        assert allowed_response.status_code == 200
+        assert allowed_response.content == b"OK"
+
+    def test_calendar_settings_post_allowed_for_admin_group(self, client, engineer_user):
+        """User in 'Admin' group can update calendar settings via AJAX."""
+        call_command('create_default_groups')
+        admin_group = Group.objects.get(name='Admin')
+        engineer_user.groups.add(admin_group)
+
+        client.force_login(engineer_user)
+        url = reverse('work_time_reporter:calendar_settings_current')
+        post_data = json.dumps({'date': '2026-11-20', 'type': 'HOLIDAY'})
+        response = client.post(
+            url,
+            data=post_data,
+            content_type='application/json',
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest'
+        )
+        assert response.status_code == 200
+        assert response.json()['status'] == 'success'
