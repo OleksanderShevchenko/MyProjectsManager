@@ -23,6 +23,7 @@
   "homepage": "https://github.com/OleksanderShevchenko/MyProjectsManager#readme",
   "devDependencies": {
     "@tailwindcss/forms": "^0.5.11",
+    "htmx.org": "^2.0.10",
     "tailwindcss": "^3.4.19"
   }
 }
