@@ -9,6 +9,7 @@ from django.utils import timezone
 
 from .models import CompanyCalendar
 from .services import TimesheetService, CalendarService
+from .decorators import manager_required
 
 
 @login_required(login_url='work_time_reporter:login')
@@ -66,15 +67,11 @@ def dashboard(request, year: int = None, week: int = None):
 
 
 @login_required(login_url='work_time_reporter:login')
+@manager_required
 def team_approvals(request):
     """
     Manager cabinet for reviewing and approving subordinates' submitted timesheets.
     """
-    managed_projects = TimesheetService.get_user_managed_projects(request.user)
-    if not managed_projects.exists():
-        messages.warning(request, "Access denied. You are not a manager of any active project.")
-        return redirect('work_time_reporter:dashboard')
-
     if request.method == 'POST':
         timesheet_id = request.POST.get('timesheet_id')
         action = request.POST.get('action')
@@ -168,7 +165,7 @@ def calendar_settings(request, year: int = None):
     if not year:
         year = datetime.datetime.now().year
 
-    is_admin = request.user.is_superuser
+    is_admin = getattr(request.user, 'is_admin_role', False) or request.user.is_superuser
 
     if request.method == 'POST' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         if not is_admin:
