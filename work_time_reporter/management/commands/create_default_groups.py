@@ -6,22 +6,35 @@ class Command(BaseCommand):
     help = "Creates default user groups (Engineer, Project Manager, Admin) and assigns model permissions."
 
     def handle(self, *args, **options):
+        # Base permissions for Engineer
+        engineer_codenames = [
+            'view_project',
+            'view_task',
+            'view_companycalendar',
+            'view_weeklytimesheet',
+            'add_weeklytimesheet',
+            'change_weeklytimesheet',
+            'add_timelog',
+            'change_timelog',
+            'delete_timelog',
+            'view_timelog',
+        ]
+
+        # Project Manager extends Engineer permissions with project and task management
+        manager_extra_codenames = [
+            'add_project',
+            'change_project',
+            'add_task',
+            'change_task',
+            'delete_task',
+        ]
+        manager_codenames = engineer_codenames + manager_extra_codenames
+
         # 1. Engineer group
         engineer_group, _ = Group.objects.get_or_create(name='Engineer')
         engineer_perms = Permission.objects.filter(
             content_type__app_label='work_time_reporter',
-            codename__in=[
-                'view_project',
-                'view_task',
-                'view_companycalendar',
-                'view_weeklytimesheet',
-                'add_weeklytimesheet',
-                'change_weeklytimesheet',
-                'add_timelog',
-                'change_timelog',
-                'delete_timelog',
-                'view_timelog',
-            ]
+            codename__in=engineer_codenames,
         )
         engineer_group.permissions.set(engineer_perms)
         self.stdout.write(
@@ -32,23 +45,7 @@ class Command(BaseCommand):
         manager_group, _ = Group.objects.get_or_create(name='Project Manager')
         manager_perms = Permission.objects.filter(
             content_type__app_label='work_time_reporter',
-            codename__in=[
-                'view_project',
-                'add_project',
-                'change_project',
-                'view_task',
-                'add_task',
-                'change_task',
-                'delete_task',
-                'view_companycalendar',
-                'view_weeklytimesheet',
-                'add_weeklytimesheet',
-                'change_weeklytimesheet',
-                'add_timelog',
-                'change_timelog',
-                'delete_timelog',
-                'view_timelog',
-            ]
+            codename__in=manager_codenames,
         )
         manager_group.permissions.set(manager_perms)
         self.stdout.write(
