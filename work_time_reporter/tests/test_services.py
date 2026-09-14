@@ -177,6 +177,94 @@ class TestTimesheetServiceSaveAndSubmit:
         assert result['success'] is False
         assert "cannot edit a submitted timesheet" in result['message']
 
+    def test_save_hours_greater_than_24_rejected(
+        self, engineer_user, active_task, draft_timesheet
+    ):
+        """Verify hours exceeding 24 per day are rejected."""
+        post_data = {
+            'action': 'save',
+            f'hours_{active_task.id}_2026-08-24': '25.0'
+        }
+        result = TimesheetService.save_timesheet_data(engineer_user, draft_timesheet, post_data)
+        assert result['success'] is False
+        assert result['type'] == 'error'
+        assert "Hours must be between 0 and 24" in result['message']
+
+    def test_save_negative_hours_rejected(
+        self, engineer_user, active_task, draft_timesheet
+    ):
+        """Verify negative hours values are rejected."""
+        post_data = {
+            'action': 'save',
+            f'hours_{active_task.id}_2026-08-24': '-2.0'
+        }
+        result = TimesheetService.save_timesheet_data(engineer_user, draft_timesheet, post_data)
+        assert result['success'] is False
+        assert result['type'] == 'error'
+        assert "Hours must be between 0 and 24" in result['message']
+
+    def test_save_invalid_hours_string_rejected(
+        self, engineer_user, active_task, draft_timesheet
+    ):
+        """Verify non-numeric hours values return an error."""
+        post_data = {
+            'action': 'save',
+            f'hours_{active_task.id}_2026-08-24': 'invalid_hours'
+        }
+        result = TimesheetService.save_timesheet_data(engineer_user, draft_timesheet, post_data)
+        assert result['success'] is False
+        assert result['type'] == 'error'
+        assert "Must be a valid number" in result['message']
+
+    def test_save_unassigned_task_ignored(
+        self, engineer_user, active_project, draft_timesheet
+    ):
+        """Verify user cannot log hours for tasks they are not assigned to."""
+        unassigned_task = Task.objects.create(
+            title="Unassigned Task",
+            project=active_project,
+            budget_hours=10
+        )
+        post_data = {
+            'action': 'save',
+            f'hours_{unassigned_task.id}_2026-08-24': '8.0'
+        }
+        result = TimesheetService.save_timesheet_data(engineer_user, draft_timesheet, post_data)
+        assert result['success'] is True
+        assert not TimeLog.objects.filter(task=unassigned_task, user=engineer_user).exists()
+
+    def test_save_inactive_project_task_ignored_for_regular_user(
+        self, engineer_user, active_project, active_task, draft_timesheet
+    ):
+        """Verify regular users cannot log hours for tasks belonging to inactive projects."""
+        active_project.is_active = False
+        active_project.save()
+
+        post_data = {
+            'action': 'save',
+            f'hours_{active_task.id}_2026-08-24': '8.0'
+        }
+        result = TimesheetService.save_timesheet_data(engineer_user, draft_timesheet, post_data)
+        assert result['success'] is True
+        assert not TimeLog.objects.filter(task=active_task, user=engineer_user).exists()
+
+    def test_save_inactive_project_task_allowed_for_admin(
+        self, engineer_user, active_project, active_task, draft_timesheet
+    ):
+        """Verify admin users can log hours even if the project is inactive."""
+        active_project.is_active = False
+        active_project.save()
+        engineer_user.is_superuser = True
+        engineer_user.save()
+
+        post_data = {
+            'action': 'save',
+            f'hours_{active_task.id}_2026-08-24': '8.0'
+        }
+        result = TimesheetService.save_timesheet_data(engineer_user, draft_timesheet, post_data)
+        assert result['success'] is True
+        assert TimeLog.objects.filter(task=active_task, user=engineer_user).exists()
+
 
 @pytest.mark.django_db
 class TestTimesheetServiceProgressData:
