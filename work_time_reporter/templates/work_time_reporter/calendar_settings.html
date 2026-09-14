@@ -12,9 +12,21 @@
     </div>
 
     <div class="flex items-center space-x-4 bg-white px-4 py-2 rounded-lg border border-gray-200 shadow-sm">
-        <a href="{% url 'work_time_reporter:calendar_settings' year|add:'-1' %}" class="text-gray-500 hover:text-indigo-600">◀</a>
+        <a href="{% url 'work_time_reporter:calendar_settings' year|add:'-1' %}"
+           class="text-gray-500 hover:text-indigo-600 transition focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded p-1"
+           title="Previous Year ({{ year|add:'-1' }})"
+           aria-label="Previous Year ({{ year|add:'-1' }})">
+            <span class="sr-only">Previous Year ({{ year|add:'-1' }})</span>
+            <span aria-hidden="true">◀</span>
+        </a>
         <span class="text-xl font-bold text-gray-800">{{ year }}</span>
-        <a href="{% url 'work_time_reporter:calendar_settings' year|add:'1' %}" class="text-gray-500 hover:text-indigo-600">▶</a>
+        <a href="{% url 'work_time_reporter:calendar_settings' year|add:'1' %}"
+           class="text-gray-500 hover:text-indigo-600 transition focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded p-1"
+           title="Next Year ({{ year|add:'1' }})"
+           aria-label="Next Year ({{ year|add:'1' }})">
+            <span class="sr-only">Next Year ({{ year|add:'1' }})</span>
+            <span aria-hidden="true">▶</span>
+        </a>
     </div>
 </div>
 
