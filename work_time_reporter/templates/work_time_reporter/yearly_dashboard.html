@@ -1,4 +1,5 @@
 {% extends 'work_time_reporter/base.html' %}
+{% load static %}
 
 {% block content %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -49,7 +50,7 @@
         
         {% if total_analyzed > 0 %}
             <div class="w-full max-w-[250px]">
-                <canvas id="hoursChart"></canvas>
+                <canvas id="hoursChart" data-total="{{ total_analyzed }}" data-comm="{{ comm_hours }}" data-non-comm="{{ non_comm_hours }}"></canvas>
             </div>
             
             <div class="mt-6 w-full space-y-2 text-sm">
@@ -71,54 +72,6 @@
 </div>
 
 {% if total_analyzed > 0 %}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-       // Register the plugin
-        Chart.register(ChartDataLabels);
-
-        const ctx = document.getElementById('hoursChart').getContext('2d');
-        const totalHours = {{ total_analyzed|safe }}; // Загальна сума для вирахування відсотків
-
-        const data = {
-            labels: ['Commercial', 'Internal'],
-            datasets: [{
-                data: [{{ comm_hours|safe }}, {{ non_comm_hours|safe }}],
-                backgroundColor: [
-                    '#4f46e5', // Indigo-600
-                    '#14b8a6'  // Teal-500
-                ],
-                hoverOffset: 4,
-                borderWidth: 0
-            }]
-        };
-
-        new Chart(ctx, {
-            type: 'doughnut',
-            data: data,
-            options: {
-                responsive: true,
-                cutout: '60%',
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                    },
-                    // Configure the DataLabels plugin
-                    datalabels: {
-                        color: '#ffffff', // Білий текст відсотків
-                        font: {
-                            weight: 'bold',
-                            size: 14
-                        },
-                        formatter: (value, context) => {
-                            if (value === 0) return ''; // Якщо годин 0, не показуємо ярлик
-                            const percentage = ((value / totalHours) * 100).toFixed(1);
-                            return percentage + '%';
-                        }
-                    }
-                }
-            }
-        });
-    });
-</script>
+<script src="{% static 'js/charts/yearly-chart.js' %}" defer></script>
 {% endif %}
 {% endblock %}
