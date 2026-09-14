@@ -27,7 +27,7 @@
                 </tr>
 
                 {% for ts in user_group.list %}
-                <tr class="hover:bg-gray-50 transition-colors">
+                <tr id="timesheet-row-{{ ts.id }}" class="hover:bg-gray-50 transition-colors">
                     <td class="px-6 py-4 whitespace-nowrap pl-10">
                         <span class="text-sm text-gray-500">Timesheet ID: #{{ ts.id }}</span>
                     </td>
@@ -50,10 +50,16 @@
                         <form method="POST" class="inline-block">
                             {% csrf_token %}
                             <input type="hidden" name="timesheet_id" value="{{ ts.id }}">
-                            <button type="submit" name="action" value="approve" class="bg-green-50 text-green-700 hover:bg-green-600 hover:text-white px-3 py-1.5 rounded-md border border-green-200 hover:border-transparent transition-colors shadow-sm">
+                            <button
+                                type="button"
+                                hx-post="{% url 'work_time_reporter:team_approvals' %}"
+                                hx-vals='{"timesheet_id": "{{ ts.id }}", "action": "approve"}'
+                                hx-target="#timesheet-row-{{ ts.id }}"
+                                hx-swap="outerHTML"
+                                class="bg-green-50 text-green-700 hover:bg-green-600 hover:text-white px-3 py-1.5 rounded-md border border-green-200 hover:border-transparent transition-colors shadow-sm cursor-pointer">
                                 ✅ Approve
                             </button>
-                            <button type="button" onclick="document.getElementById('reject-modal-{{ ts.id }}').classList.remove('hidden')" class="bg-red-50 text-red-700 hover:bg-red-600 hover:text-white px-3 py-1.5 rounded-md border border-red-200 hover:border-transparent transition-colors shadow-sm">
+                            <button type="button" onclick="document.getElementById('reject-modal-{{ ts.id }}').classList.remove('hidden')" class="bg-red-50 text-red-700 hover:bg-red-600 hover:text-white px-3 py-1.5 rounded-md border border-red-200 hover:border-transparent transition-colors shadow-sm cursor-pointer">
                                 ❌ Reject
                             </button>
                         </form>
@@ -65,14 +71,19 @@
                                 <p class="text-sm text-gray-500 mb-4">
                                     Provide feedback for <strong>{{ ts.user.get_full_name|default:ts.user.username }}</strong> (Week {{ ts.week_number }}, {{ ts.year }}):
                                 </p>
-                                <form method="POST">
+                                <form
+                                    method="POST"
+                                    hx-post="{% url 'work_time_reporter:team_approvals' %}"
+                                    hx-target="#timesheet-row-{{ ts.id }}"
+                                    hx-swap="outerHTML"
+                                    onsubmit="document.getElementById('reject-modal-{{ ts.id }}').classList.add('hidden')">
                                     {% csrf_token %}
                                     <input type="hidden" name="timesheet_id" value="{{ ts.id }}">
                                     <input type="hidden" name="action" value="reject">
                                     <textarea name="rejection_comment" rows="3" required placeholder="Explain why the timesheet was rejected and what to fix..." class="w-full border border-gray-300 rounded-md p-2.5 text-sm focus:ring-red-500 focus:border-red-500 mb-4"></textarea>
                                     <div class="flex justify-end space-x-3">
                                         <button type="button" onclick="document.getElementById('reject-modal-{{ ts.id }}').classList.add('hidden')" class="px-3.5 py-2 text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors">Cancel</button>
-                                        <button type="submit" class="px-3.5 py-2 text-sm text-white bg-red-600 hover:bg-red-700 rounded-md font-medium shadow-sm transition-colors">Confirm Rejection</button>
+                                        <button type="submit" class="px-3.5 py-2 text-sm text-white bg-red-600 hover:bg-red-700 rounded-md font-medium shadow-sm transition-colors cursor-pointer">Confirm Rejection</button>
                                     </div>
                                 </form>
                             </div>
