@@ -1,5 +1,6 @@
 import calendar
 import datetime
+import logging
 from typing import Tuple
 
 from django.contrib.auth import get_user_model
@@ -8,6 +9,9 @@ from django.db.models import Sum, Min, Q, Max
 from django.urls import reverse
 from django.utils import timezone
 from .models import Task, TimeLog, WeeklyTimesheet, Project, CompanyCalendar
+
+logger = logging.getLogger(__name__)
+
 
 class TimesheetService:
     @staticmethod
@@ -66,6 +70,13 @@ class TimesheetService:
                                 }
 
                             if hours_val < 0 or hours_val > 24:
+                                logger.warning(
+                                    "Invalid hours value '%s' submitted by user %s for task %s on date %s",
+                                    hours_str,
+                                    user.username,
+                                    task_id,
+                                    date_str,
+                                )
                                 return {
                                     'success': False,
                                     'message': "Hours must be between 0 and 24.",
@@ -100,6 +111,7 @@ class TimesheetService:
                         logs = TimeLog.objects.filter(timesheet=timesheet)
                         weekly_total = sum(log.hours for log in logs)
                         if weekly_total == 0:
+                            logger.warning("User %s attempted to submit empty timesheet %s", user.username, timesheet.id)
                             return {'success': False, 'message': "❌ Cannot submit an empty timesheet. Please log your hours first.", 'type': 'error'}
 
                         timesheet.status = WeeklyTimesheet.Status.SUBMITTED
@@ -107,7 +119,22 @@ class TimesheetService:
                         timesheet.rejection_comment = ''  # Clear any previous rejection comment upon resubmission
                         timesheet.save()
 
+                        logger.info(
+                            "Timesheet %s (Year: %s, Week: %s) submitted by user %s with total %s hours",
+                            timesheet.id,
+                            timesheet.year,
+                            timesheet.week_number,
+                            user.username,
+                            weekly_total,
+                        )
+
                         if weekly_total != 40:
+                            logger.warning(
+                                "Timesheet %s submitted with non-standard hours (%sh) by user %s",
+                                timesheet.id,
+                                weekly_total,
+                                user.username,
+                            )
                             return {
                                 'success': True,
                                 'message': f"Timesheet submitted! 🚀 Note: Logged {weekly_total}h instead of standard 40h. Your manager will review the exceptions.",
@@ -115,8 +142,16 @@ class TimesheetService:
                             }
                         return {'success': True, 'message': "Timesheet submitted for approval! 🚀", 'type': 'success'}
 
+                    logger.info(
+                        "Timesheet %s (Year: %s, Week: %s) draft saved by user %s",
+                        timesheet.id,
+                        timesheet.year,
+                        timesheet.week_number,
+                        user.username,
+                    )
                     return {'success': True, 'message': "Draft saved successfully! 💾", 'type': 'success'}
             except Exception as e:
+                logger.error("Error saving timesheet %s for user %s: %s", timesheet.id, user.username, str(e), exc_info=True)
                 return {'success': False, 'message': f"Error saving timesheet: {str(e)}", 'type': 'error'}
 
         elif action == 'recall':
@@ -124,6 +159,7 @@ class TimesheetService:
                 timesheet.status = WeeklyTimesheet.Status.DRAFT
                 timesheet.submitted_at = None
                 timesheet.save()
+                logger.info("Timesheet %s recalled to draft by user %s", timesheet.id, user.username)
                 return {'success': True, 'message': "Timesheet recalled to draft. You can edit it again. ↩️", 'type': 'info'}
 
         return {'success': False, 'message': "Unknown action.", 'type': 'error'}
@@ -395,6 +431,10 @@ class TimesheetService:
         """
         managed_projects = Project.objects.filter(manager=reviewer, is_active=True)
         if not managed_projects.exists():
+            logger.warning(
+                "Unauthorized review attempt: user %s is not a manager of any active project",
+                reviewer.username,
+            )
             return {
                 'success': False,
                 'message': "Access denied. You are not a manager of any active project.",
@@ -404,12 +444,23 @@ class TimesheetService:
         try:
             ts = WeeklyTimesheet.objects.get(id=timesheet_id)
         except WeeklyTimesheet.DoesNotExist:
+            logger.warning(
+                "Timesheet review failed: timesheet %s does not exist (reviewer: %s)",
+                timesheet_id,
+                reviewer.username,
+            )
             return {'success': False, 'message': "Timesheet not found.", 'type': 'error'}
 
         managed_project_ids = managed_projects.values_list('id', flat=True)
         user_project_ids = Project.objects.filter(members=ts.user).values_list('id', flat=True)
 
         if not (set(managed_project_ids) & set(user_project_ids)) or ts.user == reviewer:
+            logger.warning(
+                "Unauthorized review attempt by user %s on timesheet %s (owner: %s)",
+                reviewer.username,
+                timesheet_id,
+                ts.user.username,
+            )
             return {
                 'success': False,
                 'message': "Access denied. You are not authorized to review this timesheet.",
@@ -421,17 +472,36 @@ class TimesheetService:
             ts.approved_at = timezone.now()
             ts.approved_by = reviewer
             ts.save()
+            logger.info(
+                "Timesheet %s (owner: %s) approved by manager %s",
+                ts.id,
+                ts.user.username,
+                reviewer.username,
+            )
             return {'success': True, 'message': f"Timesheet for {ts.user.username} approved! ✅", 'type': 'success'}
         elif action == 'reject':
             ts.status = WeeklyTimesheet.Status.DRAFT
             ts.rejection_comment = rejection_comment.strip()
             ts.save()
+            logger.info(
+                "Timesheet %s (owner: %s) rejected by manager %s. Feedback: %s",
+                ts.id,
+                ts.user.username,
+                reviewer.username,
+                ts.rejection_comment,
+            )
             return {
                 'success': True,
                 'message': f"Timesheet for {ts.user.username} rejected with feedback and returned to draft. ❌",
                 'type': 'warning'
             }
 
+        logger.warning(
+            "Invalid review action '%s' attempted by user %s on timesheet %s",
+            action,
+            reviewer.username,
+            timesheet_id,
+        )
         return {'success': False, 'message': "Unknown action.", 'type': 'error'}
 
     @staticmethod
@@ -567,13 +637,16 @@ class CalendarService:
             target_date = datetime.datetime.strptime(date_str, '%Y-%m-%d').date()
             if new_type == 'CLEAR':
                 CompanyCalendar.objects.filter(date=target_date).delete()
+                logger.info("Company calendar customization cleared for date %s", target_date)
             else:
                 CompanyCalendar.objects.update_or_create(
                     date=target_date,
                     defaults={'day_type': new_type}
                 )
+                logger.info("Company calendar updated for date %s: day_type=%s", target_date, new_type)
             return {'success': True}
         except Exception as e:
+            logger.error("Failed to update company calendar for date %s: %s", date_str, str(e), exc_info=True)
             return {'success': False, 'message': str(e)}
 
     @staticmethod
