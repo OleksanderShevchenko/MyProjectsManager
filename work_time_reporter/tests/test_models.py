@@ -144,12 +144,13 @@ class TestWeeklyTimesheetModel:
 
 @pytest.mark.django_db
 class TestTimeLogModel:
-    def test_unique_constraint_user_task_date(self, active_task, engineer_user):
+    def test_unique_constraint_user_task_date(self, active_task, engineer_user, draft_timesheet):
         """Verify the 'Iron Rule': cannot log time twice for the same user, task, and date."""
         today = timezone.now().date()
         TimeLog.objects.create(
             user=engineer_user,
             task=active_task,
+            timesheet=draft_timesheet,
             date=today,
             hours=5.0
         )
@@ -157,8 +158,20 @@ class TestTimeLogModel:
             TimeLog.objects.create(
                 user=engineer_user,
                 task=active_task,
+                timesheet=draft_timesheet,
                 date=today,
                 hours=3.0
+            )
+
+    def test_timelog_requires_timesheet(self, active_task, engineer_user):
+        """Verify TimeLog cannot be created without a timesheet (null=False constraint)."""
+        with pytest.raises(IntegrityError):
+            TimeLog.objects.create(
+                user=engineer_user,
+                task=active_task,
+                timesheet=None,
+                date=timezone.now().date(),
+                hours=4.0
             )
 
     def test_delete_time_log_on_approved_timesheet_raises_error(
@@ -191,3 +204,31 @@ class TestCompanyCalendarModel:
         )
         assert "Holiday / Non-working day" in str(cal)
         assert "2026-12-25" in str(cal)
+
+
+@pytest.mark.django_db
+class TestTimestampMixinAndAuditFields:
+    def test_models_have_timestamps(self, active_project, active_task, draft_timesheet):
+        """Verify models inherit created_at and updated_at from TimestampMixin."""
+        assert active_project.created_at is not None
+        assert active_project.updated_at is not None
+        assert active_task.created_at is not None
+        assert active_task.updated_at is not None
+        assert draft_timesheet.created_at is not None
+        assert draft_timesheet.updated_at is not None
+
+    def test_weekly_timesheet_audit_fields(self, draft_timesheet, manager_user):
+        """Verify WeeklyTimesheet audit trail fields exist and can be populated."""
+        now = timezone.now()
+        draft_timesheet.submitted_at = now
+        draft_timesheet.approved_at = now
+        draft_timesheet.approved_by = manager_user
+        draft_timesheet.rejection_comment = "Please clarify task allocation."
+        draft_timesheet.save()
+
+        draft_timesheet.refresh_from_db()
+        assert draft_timesheet.submitted_at == now
+        assert draft_timesheet.approved_at == now
+        assert draft_timesheet.approved_by == manager_user
+        assert draft_timesheet.rejection_comment == "Please clarify task allocation."
+

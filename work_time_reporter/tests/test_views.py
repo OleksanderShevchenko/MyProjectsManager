@@ -5,7 +5,8 @@ from django.urls import reverse
 from django.utils import timezone
 
 from work_time_reporter.models import (
-    TimeLog
+    TimeLog,
+    WeeklyTimesheet
 )
 
 User = get_user_model()
@@ -98,6 +99,42 @@ class TestDashboardViews:
             hours=8.0
         ).exists()
 
+    def test_dashboard_renders_rejection_comment_banner_when_rejected(
+        self, engineer_client, draft_timesheet
+    ):
+        """Dashboard renders warning banner with manager's feedback when timesheet was rejected."""
+        draft_timesheet.rejection_comment = "Please verify hours logged for project deployment."
+        draft_timesheet.status = WeeklyTimesheet.Status.DRAFT
+        draft_timesheet.save()
+
+        url = reverse('work_time_reporter:dashboard_week', kwargs={
+            'year': draft_timesheet.year,
+            'week': draft_timesheet.week_number
+        })
+        response = engineer_client.get(url)
+        assert response.status_code == 200
+
+        content = response.content.decode('utf-8')
+        assert "Timesheet Returned with Feedback" in content
+        assert "Please verify hours logged for project deployment." in content
+
+    def test_dashboard_does_not_render_rejection_banner_when_clean(
+        self, engineer_client, draft_timesheet
+    ):
+        """Dashboard does not render rejection banner when there is no rejection comment."""
+        draft_timesheet.rejection_comment = ""
+        draft_timesheet.save()
+
+        url = reverse('work_time_reporter:dashboard_week', kwargs={
+            'year': draft_timesheet.year,
+            'week': draft_timesheet.week_number
+        })
+        response = engineer_client.get(url)
+        assert response.status_code == 200
+
+        content = response.content.decode('utf-8')
+        assert "Timesheet Returned with Feedback" not in content
+
 
 @pytest.mark.django_db
 class TestYearlyAndProgressViews:
@@ -109,6 +146,28 @@ class TestYearlyAndProgressViews:
         response = engineer_client.get(url)
         assert response.status_code == 200
         assert 'weeks_data' in response.context
+
+    def test_yearly_dashboard_week_53_for_leap_iso_year(
+        self, engineer_client
+    ):
+        """Verify that years with 53 ISO weeks (such as 2026) render 53 weeks in the grid."""
+        url = reverse('work_time_reporter:yearly_dashboard_year', kwargs={'year': 2026})
+        response = engineer_client.get(url)
+        assert response.status_code == 200
+        weeks_data = response.context['weeks_data']
+        assert len(weeks_data) == 53
+        assert weeks_data[-1]['week_num'] == 53
+
+    def test_yearly_dashboard_week_52_for_standard_iso_year(
+        self, engineer_client
+    ):
+        """Verify that standard 52-week ISO years (such as 2025) render 52 weeks."""
+        url = reverse('work_time_reporter:yearly_dashboard_year', kwargs={'year': 2025})
+        response = engineer_client.get(url)
+        assert response.status_code == 200
+        weeks_data = response.context['weeks_data']
+        assert len(weeks_data) == 52
+        assert weeks_data[-1]['week_num'] == 52
 
     def test_progress_dashboard_current_loads_correctly(
         self, engineer_client, active_project, active_task

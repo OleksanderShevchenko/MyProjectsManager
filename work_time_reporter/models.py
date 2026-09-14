@@ -10,7 +10,16 @@ def current_year() -> int:
     return timezone.now().year
 
 
-class Project(models.Model):  # a year contract by the matter of fact
+class TimestampMixin(models.Model):
+    """Abstract mixin to provide self-updating creation and modification timestamps."""
+    created_at = models.DateTimeField(default=timezone.now, editable=False, verbose_name="Created At")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Updated At")
+
+    class Meta:
+        abstract = True
+
+
+class Project(TimestampMixin, models.Model):  # a year contract by the matter of fact
     class ProjectType(models.TextChoices):
         COMMERCIAL = 'COMMERCIAL', 'Commercial'
         INTERNAL = 'INTERNAL', 'Internal / Pet Project'
@@ -57,7 +66,7 @@ class Project(models.Model):  # a year contract by the matter of fact
         return f"{self.name} ({self.year})"
 
 
-class Task(models.Model):
+class Task(TimestampMixin, models.Model):
     class Status(models.TextChoices):
         NOT_SUBMITTED = 'NOT_SUBMITTED', 'Not Submitted'
         IN_PROGRESS = 'IN_PROGRESS', 'In Progress'
@@ -103,7 +112,7 @@ class Task(models.Model):
         return self.title
 
 
-class WeeklyTimesheet(models.Model):
+class WeeklyTimesheet(TimestampMixin, models.Model):
     class Status(models.TextChoices):
         DRAFT = 'DRAFT', 'Draft'
         SUBMITTED = 'SUBMITTED', 'Submitted for Approval'
@@ -111,8 +120,21 @@ class WeeklyTimesheet(models.Model):
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='timesheets')
     year = models.IntegerField()
-    week_number = models.IntegerField() # Номер тижня від 1 до 52/53
+    week_number = models.IntegerField()  # Номер тижня від 1 до 52/53
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
+
+    # Audit trail fields
+    submitted_at = models.DateTimeField(null=True, blank=True, verbose_name="Submitted At")
+    approved_at = models.DateTimeField(null=True, blank=True, verbose_name="Approved At")
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='approved_timesheets',
+        verbose_name="Approved By"
+    )
+    rejection_comment = models.TextField(blank=True, default='', verbose_name="Rejection Comment")
 
     class Meta:
         # У одного користувача може бути лише один звіт на конкретний тиждень року
@@ -127,10 +149,14 @@ class WeeklyTimesheet(models.Model):
         return f"{self.user} - {self.year} Week {self.week_number} ({self.status})"
 
 
-class TimeLog(models.Model):
-    # Added link to weekly report (null=True temporarily so as not to break your existing test data)
-    timesheet = models.ForeignKey(WeeklyTimesheet, on_delete=models.CASCADE, related_name='time_logs', null=True,
-                                  blank=True)
+class TimeLog(TimestampMixin, models.Model):
+    # Mandatory link to weekly report: every time log must belong to a weekly timesheet
+    timesheet = models.ForeignKey(
+        WeeklyTimesheet,
+        on_delete=models.CASCADE,
+        related_name='time_logs',
+        verbose_name="Weekly Timesheet"
+    )
 
     task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name='time_logs')
     # Connect time reporting with a user
@@ -148,7 +174,7 @@ class TimeLog(models.Model):
         ]
 
     def delete(self, *args, **kwargs):
-        if self.timesheet and self.timesheet.status == WeeklyTimesheet.Status.APPROVED:
+        if self.timesheet.status == WeeklyTimesheet.Status.APPROVED:
             raise ValidationError("Cannot delete time log belonging to an approved timesheet.")
         super().delete(*args, **kwargs)
 
@@ -156,7 +182,7 @@ class TimeLog(models.Model):
         return f"{self.user} - {self.task.title} ({self.hours}h)"
 
 
-class CompanyCalendar(models.Model):
+class CompanyCalendar(TimestampMixin, models.Model):
     """
     Global calendar to track holidays, short days before state holidays.
     Managed only by System Administrators.

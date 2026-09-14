@@ -99,18 +99,39 @@
     </div>
 
     {% if is_manager and timesheet.status == 'SUBMITTED' %}
-    <form method="POST" class="bg-gray-50 px-6 py-4 flex justify-between items-center border-t border-gray-200">
-        {% csrf_token %}
+    <div class="bg-gray-50 px-6 py-4 flex justify-between items-center border-t border-gray-200">
         <div class="text-sm text-gray-600">Please review the logged hours carefully before approving.</div>
         <div class="flex space-x-3">
-            <button type="submit" name="action" value="reject" class="bg-red-50 text-red-700 hover:bg-red-100 font-medium py-2 px-4 border border-red-200 rounded-md shadow-sm transition">
+            <button type="button" onclick="document.getElementById('detail-reject-modal').classList.remove('hidden')" class="bg-red-50 text-red-700 hover:bg-red-100 font-medium py-2 px-4 border border-red-200 rounded-md shadow-sm transition">
                 ❌ Reject & Return
             </button>
-            <button type="submit" name="action" value="approve" class="bg-green-600 text-white hover:bg-green-700 font-medium py-2 px-4 border border-transparent rounded-md shadow-sm transition">
-                ✅ Approve Timesheet
-            </button>
+            <form method="POST" class="inline">
+                {% csrf_token %}
+                <button type="submit" name="action" value="approve" class="bg-green-600 text-white hover:bg-green-700 font-medium py-2 px-4 border border-transparent rounded-md shadow-sm transition">
+                    ✅ Approve Timesheet
+                </button>
+            </form>
         </div>
-    </form>
+    </div>
+
+    <!-- Rejection Modal -->
+    <div id="detail-reject-modal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-gray-900/50 flex items-center justify-center p-4 text-left">
+        <div class="bg-white rounded-lg max-w-md w-full p-6 shadow-xl border border-gray-200">
+            <h3 class="text-lg font-bold text-gray-900 mb-2">Reject Timesheet</h3>
+            <p class="text-sm text-gray-500 mb-4">
+                Provide feedback for <strong>{{ timesheet.user.get_full_name|default:timesheet.user.username }}</strong> (Week {{ timesheet.week_number }}, {{ timesheet.year }}):
+            </p>
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="reject">
+                <textarea name="rejection_comment" rows="3" required placeholder="Explain why the timesheet was rejected and what to fix..." class="w-full border border-gray-300 rounded-md p-2.5 text-sm focus:ring-red-500 focus:border-red-500 mb-4"></textarea>
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="document.getElementById('detail-reject-modal').classList.add('hidden')" class="px-3.5 py-2 text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors">Cancel</button>
+                    <button type="submit" class="px-3.5 py-2 text-sm text-white bg-red-600 hover:bg-red-700 rounded-md font-medium shadow-sm transition-colors">Confirm Rejection</button>
+                </div>
+            </form>
+        </div>
+    </div>
     {% endif %}
 </div>
 {% endblock %}
