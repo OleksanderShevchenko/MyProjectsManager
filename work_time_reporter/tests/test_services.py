@@ -6,9 +6,10 @@ from work_time_reporter.models import (
     Project,
     Task,
     WeeklyTimesheet,
-    TimeLog
+    TimeLog,
+    CompanyCalendar
 )
-from work_time_reporter.services import TimesheetService
+from work_time_reporter.services import TimesheetService, CalendarService
 
 
 @pytest.mark.django_db
@@ -275,3 +276,181 @@ class TestTimesheetServiceProgressData:
             Project.ProjectType.ADMINISTRATIVE,
             Project.ProjectType.INTERNAL
         ]
+
+
+@pytest.mark.django_db
+class TestTimesheetServiceExtractedMethods:
+    def test_get_or_create_timesheet(self, engineer_user):
+        """Verify get_or_create_timesheet returns timesheet, week_dates and navigation info."""
+        ts, week_dates, prev_y, prev_w, next_y, next_w = TimesheetService.get_or_create_timesheet(
+            engineer_user, 2026, 35
+        )
+        assert ts.user == engineer_user
+        assert ts.year == 2026
+        assert ts.week_number == 35
+        assert ts.status == WeeklyTimesheet.Status.DRAFT
+        assert len(week_dates) == 7
+        assert week_dates[0] == datetime.date(2026, 8, 24)
+        assert week_dates[-1] == datetime.date(2026, 8, 30)
+        assert (prev_y, prev_w) == (2026, 34)
+        assert (next_y, next_w) == (2026, 36)
+
+    def test_build_weekly_grid_and_mini_dashboard(
+        self, engineer_user, active_project, active_task, draft_timesheet
+    ):
+        """Verify weekly grid assembly with calendar events and mini dashboard calculation."""
+        monday = datetime.date.fromisocalendar(draft_timesheet.year, draft_timesheet.week_number, 1)
+        week_dates = [monday + datetime.timedelta(days=i) for i in range(7)]
+
+        # Create a company calendar holiday on Wednesday
+        CompanyCalendar.objects.create(date=monday + datetime.timedelta(days=2), day_type='HOLIDAY')
+
+        # Log hours on Monday
+        TimeLog.objects.create(
+            user=engineer_user,
+            task=active_task,
+            timesheet=draft_timesheet,
+            date=monday,
+            hours=7.5,
+            comment="Refactoring work"
+        )
+
+        grid_data = TimesheetService.build_weekly_grid(engineer_user, draft_timesheet, week_dates)
+        assert active_project in grid_data
+        task_row = grid_data[active_project][0]
+        assert task_row['task'] == active_task
+        assert task_row['row_total'] == 7.5
+        assert task_row['days'][0]['hours'] == 7.5
+        assert task_row['days'][0]['comment'] == "Refactoring work"
+        assert task_row['days'][2]['is_holiday'] is True
+
+        mini_dash = TimesheetService.build_mini_dashboard(engineer_user, grid_data.keys())
+        assert len(mini_dash) == 1
+        assert mini_dash[0]['name'] == active_project.name
+        assert mini_dash[0]['spent'] == 7.5
+
+    def test_get_pending_approvals(
+        self, manager_user, active_project, active_task, engineer_user, draft_timesheet
+    ):
+        """Verify get_pending_approvals fetches submitted timesheets for managed team members."""
+        monday = datetime.date.fromisocalendar(draft_timesheet.year, draft_timesheet.week_number, 1)
+        draft_timesheet.status = WeeklyTimesheet.Status.SUBMITTED
+        draft_timesheet.save()
+        TimeLog.objects.create(
+            user=engineer_user,
+            task=active_task,
+            timesheet=draft_timesheet,
+            date=monday,
+            hours=8.0
+        )
+
+        pending = TimesheetService.get_pending_approvals(manager_user)
+        assert pending.count() == 1
+        assert pending.first().total_hours == 8.0
+
+    def test_review_timesheet_approve_and_reject(
+        self, manager_user, active_project, active_task, engineer_user, draft_timesheet
+    ):
+        """Verify manager can approve and reject subordinate timesheets with comments."""
+        draft_timesheet.status = WeeklyTimesheet.Status.SUBMITTED
+        draft_timesheet.save()
+
+        # Reject
+        reject_res = TimesheetService.review_timesheet(
+            manager_user, draft_timesheet.id, 'reject', 'Missing task notes'
+        )
+        assert reject_res['success'] is True
+        draft_timesheet.refresh_from_db()
+        assert draft_timesheet.status == WeeklyTimesheet.Status.DRAFT
+        assert draft_timesheet.rejection_comment == 'Missing task notes'
+
+        # Resubmit and Approve
+        draft_timesheet.status = WeeklyTimesheet.Status.SUBMITTED
+        draft_timesheet.save()
+        approve_res = TimesheetService.review_timesheet(
+            manager_user, draft_timesheet.id, 'approve'
+        )
+        assert approve_res['success'] is True
+        draft_timesheet.refresh_from_db()
+        assert draft_timesheet.status == WeeklyTimesheet.Status.APPROVED
+        assert draft_timesheet.approved_by == manager_user
+        assert draft_timesheet.approved_at is not None
+
+    def test_review_timesheet_unauthorized_for_unrelated_user(
+        self, other_user, draft_timesheet
+    ):
+        """Verify review is blocked for users who do not manage the timesheet owner's projects."""
+        res = TimesheetService.review_timesheet(other_user, draft_timesheet.id, 'approve')
+        assert res['success'] is False
+        assert "Access denied" in res['message']
+
+    def test_get_timesheet_detail_data(
+        self, engineer_user, manager_user, other_user, active_project, active_task, draft_timesheet
+    ):
+        """Verify access control and detail matrix assembly for timesheet detail."""
+        monday = datetime.date.fromisocalendar(draft_timesheet.year, draft_timesheet.week_number, 1)
+        TimeLog.objects.create(
+            user=engineer_user,
+            task=active_task,
+            timesheet=draft_timesheet,
+            date=monday,
+            hours=8.0
+        )
+
+        # Owner access
+        ts, ctx, err = TimesheetService.get_timesheet_detail_data(engineer_user, draft_timesheet.id)
+        assert err is None
+        assert ts == draft_timesheet
+        assert ctx['weekly_total'] == 8.0
+        assert ctx['is_manager'] is False
+
+        # Manager access
+        ts_m, ctx_m, err_m = TimesheetService.get_timesheet_detail_data(manager_user, draft_timesheet.id)
+        assert err_m is None
+        assert ctx_m['is_manager'] is True
+
+        # Unauthorized access
+        ts_u, ctx_u, err_u = TimesheetService.get_timesheet_detail_data(other_user, draft_timesheet.id)
+        assert ts_u is None
+        assert "Access denied" in err_u
+
+    def test_get_yearly_data(self, engineer_user, active_project, active_task, draft_timesheet):
+        """Verify yearly summary aggregates weeks and project type hours."""
+        monday = datetime.date.fromisocalendar(draft_timesheet.year, draft_timesheet.week_number, 1)
+        TimeLog.objects.create(
+            user=engineer_user,
+            task=active_task,
+            timesheet=draft_timesheet,
+            date=monday,
+            hours=12.0
+        )
+        data = TimesheetService.get_yearly_data(engineer_user, draft_timesheet.year)
+        assert data['current_year'] == draft_timesheet.year
+        max_weeks = datetime.date(draft_timesheet.year, 12, 28).isocalendar()[1]
+        assert len(data['weeks_data']) == max_weeks
+        assert data['comm_hours'] == 12.0
+        assert data['total_analyzed'] == 12.0
+
+
+@pytest.mark.django_db
+class TestCalendarService:
+    def test_update_day_create_and_clear(self):
+        """Verify CalendarService creates and removes company calendar exceptions."""
+        res = CalendarService.update_day('2026-05-01', 'HOLIDAY')
+        assert res['success'] is True
+        assert CompanyCalendar.objects.filter(date=datetime.date(2026, 5, 1), day_type='HOLIDAY').exists()
+
+        clear_res = CalendarService.update_day('2026-05-01', 'CLEAR')
+        assert clear_res['success'] is True
+        assert not CompanyCalendar.objects.filter(date=datetime.date(2026, 5, 1)).exists()
+
+    def test_get_year_calendar_data(self):
+        """Verify CalendarService generates 12 months with days and week structure."""
+        CompanyCalendar.objects.create(date=datetime.date(2026, 1, 1), day_type='HOLIDAY')
+        months_data = CalendarService.get_year_calendar_data(2026)
+        assert len(months_data) == 12
+        january = months_data[0]
+        assert january['name'] == 'January'
+        all_days = [day for week in january['weeks'] for day in week if day]
+        jan1 = next(d for d in all_days if d['date'] == datetime.date(2026, 1, 1))
+        assert jan1['day_type'] == 'HOLIDAY'
