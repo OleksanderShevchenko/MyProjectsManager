@@ -205,7 +205,7 @@ def calendar_settings(request, year: int = None):
                         'day_num': target_date.day,
                         'is_weekend': target_date.weekday() >= 5,
                         'day_type': day_type,
-                        'next_type': CalendarService.get_next_day_type(day_type),
+                        'next_type': CalendarService.get_next_day_type(day_type, target_date=target_date),
                     }
                     return render(request, 'work_time_reporter/partials/calendar_day_cell.html', {
                         'day': day_obj,
