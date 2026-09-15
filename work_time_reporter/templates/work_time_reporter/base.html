@@ -1,6 +1,6 @@
-{% load static django_htmx %}
+{% load static django_htmx i18n %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ LANGUAGE_CODE|default:'en' }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,7 +14,7 @@
 </head>
 <body class="bg-gray-100 min-h-screen" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
     <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-indigo-600 text-white px-4 py-2 rounded-md shadow-md z-50 focus:outline-none focus:ring-2 focus:ring-white">
-        Skip to main content
+        {% trans "Skip to main content" %}
     </a>
 
     <nav class="bg-indigo-900 text-white shadow-lg">
@@ -26,27 +26,45 @@
                     </a>
 
                     <div class="hidden md:flex space-x-4">
-                        <a href="{% url 'work_time_reporter:dashboard' %}" class="text-indigo-100 hover:bg-indigo-800 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition">My Timesheet</a>
-                        <a href="{% url 'work_time_reporter:yearly_dashboard' %}" class="text-indigo-100 hover:bg-indigo-800 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition">Yearly Overview</a>
-                        <a href="{% url 'msproject_import:start' %}" class="text-indigo-100 hover:bg-indigo-800 px-3 py-2 rounded-md text-sm font-medium">Import PWA</a>
-                        <a href="{% url 'work_time_reporter:progress_dashboard_current' %}" class="text-indigo-100 hover:bg-indigo-800 px-3 py-2 rounded-md text-sm font-medium">Progress Tracker</a>
-                        <a href="{% url 'work_time_reporter:calendar_settings_current' %}" class="text-indigo-100 hover:bg-indigo-800 px-3 py-2 rounded-md text-sm font-medium">Calendar</a>
+                        <a href="{% url 'work_time_reporter:dashboard' %}" class="text-indigo-100 hover:bg-indigo-800 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition">{% trans "My Timesheet" %}</a>
+                        <a href="{% url 'work_time_reporter:yearly_dashboard' %}" class="text-indigo-100 hover:bg-indigo-800 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition">{% trans "Yearly Overview" %}</a>
+                        <a href="{% url 'msproject_import:start' %}" class="text-indigo-100 hover:bg-indigo-800 px-3 py-2 rounded-md text-sm font-medium">{% trans "Import PWA" %}</a>
+                        <a href="{% url 'work_time_reporter:progress_dashboard_current' %}" class="text-indigo-100 hover:bg-indigo-800 px-3 py-2 rounded-md text-sm font-medium">{% trans "Progress Tracker" %}</a>
+                        <a href="{% url 'work_time_reporter:calendar_settings_current' %}" class="text-indigo-100 hover:bg-indigo-800 px-3 py-2 rounded-md text-sm font-medium">{% trans "Calendar" %}</a>
                         {% if request.user.is_active_manager %}
-                            <a href="{% url 'work_time_reporter:team_approvals' %}" class="text-white bg-indigo-800 hover:bg-indigo-700 px-3 py-2 rounded-md text-sm font-medium transition shadow-inner">Team Approvals</a>
+                            <a href="{% url 'work_time_reporter:team_approvals' %}" class="text-white bg-indigo-800 hover:bg-indigo-700 px-3 py-2 rounded-md text-sm font-medium transition shadow-inner">{% trans "Team Approvals" %}</a>
                         {% endif %}
                         {% if user.is_staff %}
-                            <a href="{% url 'msproject_import:pending' %}" class="text-indigo-100 hover:bg-indigo-800 px-3 py-2 rounded-md text-sm font-medium">Pending Imports</a>
+                            <a href="{% url 'msproject_import:pending' %}" class="text-indigo-100 hover:bg-indigo-800 px-3 py-2 rounded-md text-sm font-medium">{% trans "Pending Imports" %}</a>
                         {% endif %}
                     </div>
                 </div>
 
-                <!-- Desktop User & Logout -->
-                <div class="hidden md:flex items-center">
-                    <span class="mr-4 text-sm text-indigo-200">User: <strong>{{ request.user.username }}</strong></span>
+                <!-- Desktop User, Language Switcher & Logout -->
+                <div class="hidden md:flex items-center space-x-4">
+                    <!-- Language switcher -->
+                    <form action="{% url 'set_language' %}" method="post" class="inline-flex items-center text-xs">
+                        {% csrf_token %}
+                        <input name="next" type="hidden" value="{{ request.get_full_path }}">
+                        <div class="inline-flex rounded-md shadow-xs bg-indigo-950/60 p-0.5 border border-indigo-700/50">
+                            <button type="submit" name="language" value="en"
+                                    class="px-2 py-1 rounded text-xs font-semibold transition cursor-pointer {% if LANGUAGE_CODE == 'en' %}bg-indigo-600 text-white shadow{% else %}text-indigo-200 hover:text-white{% endif %}"
+                                    aria-label="Switch language to English">
+                                EN
+                            </button>
+                            <button type="submit" name="language" value="uk"
+                                    class="px-2 py-1 rounded text-xs font-semibold transition cursor-pointer {% if LANGUAGE_CODE == 'uk' %}bg-indigo-600 text-white shadow{% else %}text-indigo-200 hover:text-white{% endif %}"
+                                    aria-label="Перемкнути мову на українську">
+                                UA
+                            </button>
+                        </div>
+                    </form>
+
+                    <span class="text-sm text-indigo-200">{% trans "User" %}: <strong>{{ request.user.username }}</strong></span>
                     <form method="POST" action="{% url 'work_time_reporter:logout' %}" class="inline">
                         {% csrf_token %}
-                        <button type="submit" aria-label="Log out of system" class="bg-indigo-700 hover:bg-indigo-600 px-3 py-2 rounded text-sm transition cursor-pointer">
-                            Logout
+                        <button type="submit" aria-label="{% trans 'Log out of system' %}" class="bg-indigo-700 hover:bg-indigo-600 px-3 py-2 rounded text-sm transition cursor-pointer">
+                            {% trans "Logout" %}
                         </button>
                     </form>
                 </div>
@@ -57,8 +75,8 @@
                             class="inline-flex items-center justify-center p-2 rounded-md text-indigo-200 hover:text-white hover:bg-indigo-800 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white transition cursor-pointer"
                             aria-controls="mobile-menu"
                             aria-expanded="false"
-                            aria-label="Open main menu">
-                        <span class="sr-only">Open main menu</span>
+                            aria-label="{% trans 'Open main menu' %}">
+                        <span class="sr-only">{% trans "Open main menu" %}</span>
                         <svg id="hamburger-icon" class="block h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                         </svg>
@@ -72,26 +90,44 @@
 
         <!-- Mobile Menu Panel -->
         <div id="mobile-menu" class="hidden md:hidden border-t border-indigo-800 bg-indigo-900 px-4 pt-2 pb-4 space-y-1">
-            <a href="{% url 'work_time_reporter:dashboard' %}" class="text-indigo-100 hover:bg-indigo-800 hover:text-white block px-3 py-2 rounded-md text-base font-medium">My Timesheet</a>
-            <a href="{% url 'work_time_reporter:yearly_dashboard' %}" class="text-indigo-100 hover:bg-indigo-800 hover:text-white block px-3 py-2 rounded-md text-base font-medium">Yearly Overview</a>
-            <a href="{% url 'msproject_import:start' %}" class="text-indigo-100 hover:bg-indigo-800 block px-3 py-2 rounded-md text-base font-medium">Import PWA</a>
-            <a href="{% url 'work_time_reporter:progress_dashboard_current' %}" class="text-indigo-100 hover:bg-indigo-800 block px-3 py-2 rounded-md text-base font-medium">Progress Tracker</a>
-            <a href="{% url 'work_time_reporter:calendar_settings_current' %}" class="text-indigo-100 hover:bg-indigo-800 block px-3 py-2 rounded-md text-base font-medium">Calendar</a>
+            <a href="{% url 'work_time_reporter:dashboard' %}" class="text-indigo-100 hover:bg-indigo-800 hover:text-white block px-3 py-2 rounded-md text-base font-medium">{% trans "My Timesheet" %}</a>
+            <a href="{% url 'work_time_reporter:yearly_dashboard' %}" class="text-indigo-100 hover:bg-indigo-800 hover:text-white block px-3 py-2 rounded-md text-base font-medium">{% trans "Yearly Overview" %}</a>
+            <a href="{% url 'msproject_import:start' %}" class="text-indigo-100 hover:bg-indigo-800 block px-3 py-2 rounded-md text-base font-medium">{% trans "Import PWA" %}</a>
+            <a href="{% url 'work_time_reporter:progress_dashboard_current' %}" class="text-indigo-100 hover:bg-indigo-800 block px-3 py-2 rounded-md text-base font-medium">{% trans "Progress Tracker" %}</a>
+            <a href="{% url 'work_time_reporter:calendar_settings_current' %}" class="text-indigo-100 hover:bg-indigo-800 block px-3 py-2 rounded-md text-base font-medium">{% trans "Calendar" %}</a>
             {% if request.user.is_active_manager %}
-                <a href="{% url 'work_time_reporter:team_approvals' %}" class="text-white bg-indigo-800 hover:bg-indigo-700 block px-3 py-2 rounded-md text-base font-medium shadow-inner">Team Approvals</a>
+                <a href="{% url 'work_time_reporter:team_approvals' %}" class="text-white bg-indigo-800 hover:bg-indigo-700 block px-3 py-2 rounded-md text-base font-medium shadow-inner">{% trans "Team Approvals" %}</a>
             {% endif %}
             {% if user.is_staff %}
-                <a href="{% url 'msproject_import:pending' %}" class="text-indigo-100 hover:bg-indigo-800 block px-3 py-2 rounded-md text-base font-medium">Pending Imports</a>
+                <a href="{% url 'msproject_import:pending' %}" class="text-indigo-100 hover:bg-indigo-800 block px-3 py-2 rounded-md text-base font-medium">{% trans "Pending Imports" %}</a>
             {% endif %}
 
-            <div class="pt-4 pb-2 border-t border-indigo-800 mt-3">
-                <div class="px-3 text-sm text-indigo-200 mb-2">
-                    Signed in as: <strong class="text-white">{{ request.user.username }}</strong>
+            <div class="pt-4 pb-2 border-t border-indigo-800 mt-3 space-y-3">
+                <div class="px-3 flex items-center justify-between">
+                    <span class="text-sm text-indigo-200">
+                        {% trans "Signed in as:" %} <strong class="text-white">{{ request.user.username }}</strong>
+                    </span>
+                    <form action="{% url 'set_language' %}" method="post" class="inline-flex items-center text-xs">
+                        {% csrf_token %}
+                        <input name="next" type="hidden" value="{{ request.get_full_path }}">
+                        <div class="inline-flex rounded-md shadow-xs bg-indigo-950/60 p-0.5 border border-indigo-700/50">
+                            <button type="submit" name="language" value="en"
+                                    class="px-2 py-1 rounded text-xs font-semibold transition cursor-pointer {% if LANGUAGE_CODE == 'en' %}bg-indigo-600 text-white shadow{% else %}text-indigo-200 hover:text-white{% endif %}"
+                                    aria-label="Switch language to English">
+                                EN
+                            </button>
+                            <button type="submit" name="language" value="uk"
+                                    class="px-2 py-1 rounded text-xs font-semibold transition cursor-pointer {% if LANGUAGE_CODE == 'uk' %}bg-indigo-600 text-white shadow{% else %}text-indigo-200 hover:text-white{% endif %}"
+                                    aria-label="Перемкнути мову на українську">
+                                UA
+                            </button>
+                        </div>
+                    </form>
                 </div>
                 <form method="POST" action="{% url 'work_time_reporter:logout' %}" class="px-3">
                     {% csrf_token %}
-                    <button type="submit" aria-label="Log out of system" class="w-full text-left bg-indigo-700 hover:bg-indigo-600 px-3 py-2 rounded-md text-base font-medium text-white transition cursor-pointer">
-                        Logout
+                    <button type="submit" aria-label="{% trans 'Log out of system' %}" class="w-full text-left bg-indigo-700 hover:bg-indigo-600 px-3 py-2 rounded-md text-base font-medium text-white transition cursor-pointer">
+                        {% trans "Logout" %}
                     </button>
                 </form>
             </div>
