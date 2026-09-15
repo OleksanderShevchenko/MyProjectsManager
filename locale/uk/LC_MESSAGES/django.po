@@ -1,0 +1,475 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: MyProjectsManager 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-15 12:00+0300\n"
+"PO-Revision-Date: 2026-09-15 12:00+0300\n"
+"Last-Translator: Antigravity <antigravity@local>\n"
+"Language-Team: Ukrainian\n"
+"Language: uk\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=4; plural=(n % 1 == 0 && n % 10 == 1 && n % 100 != 11 ? 0 : n % 1 == 0 && n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 1 : n % 1 == 0 && (n % 10 ==0 || (n % 10 >=5 && n % 10 <=9) || (n % 100 >=11 && n % 100 <=14 )) ? 2: 3);\n"
+
+msgid "English"
+msgstr "Англійська"
+
+msgid "Ukrainian"
+msgstr "Українська"
+
+msgid "Standard (8h)"
+msgstr "Звичайний (8г)"
+
+msgid "Holiday"
+msgstr "Свято"
+
+msgid "Short Day (7h)"
+msgstr "Скорочений день (7г)"
+
+msgid "Free Monday"
+msgstr "Вільний понеділок"
+
+msgid "Project"
+msgstr "Проєкт"
+
+msgid "Projects"
+msgstr "Проєкти"
+
+msgid "Task"
+msgstr "Завдання"
+
+msgid "Tasks"
+msgstr "Завдання"
+
+msgid "Weekly Timesheet"
+msgstr "Тижневий табель"
+
+msgid "Weekly Timesheets"
+msgstr "Тижневі табелі"
+
+msgid "Time Log"
+msgstr "Запис часу"
+
+msgid "Time Logs"
+msgstr "Записи часу"
+
+msgid "Company Calendar"
+msgstr "Календар компанії"
+
+msgid "Company Calendars"
+msgstr "Календарі компанії"
+
+msgid "Commercial"
+msgstr "Комерційний"
+
+msgid "Internal"
+msgstr "Внутрішній"
+
+msgid "Administrative"
+msgstr "Адміністративний"
+
+msgid "Draft"
+msgstr "Чернетка"
+
+msgid "Submitted"
+msgstr "Подано"
+
+msgid "Approved"
+msgstr "Затверджено"
+
+msgid "Skip to main content"
+msgstr "Перейти до основного вмісту"
+
+msgid "Weekly Dashboard"
+msgstr "Тижневий дашборд"
+
+msgid "Yearly Matrix"
+msgstr "Річна матриця"
+
+msgid "Progress Board"
+msgstr "Дошка прогресу"
+
+msgid "Team Approvals"
+msgstr "Затвердження команди"
+
+msgid "Open mobile menu"
+msgstr "Відкрити мобільне меню"
+
+msgid "Close mobile menu"
+msgstr "Закрити мобільне меню"
+
+msgid "Navigation"
+msgstr "Навігація"
+
+msgid "Language"
+msgstr "Мова"
+
+msgid "Logout"
+msgstr "Вийти"
+
+msgid "Log out of your account"
+msgstr "Вийти зі свого облікового запису"
+
+msgid "Previous Week"
+msgstr "Попередній тиждень"
+
+msgid "Next Week"
+msgstr "Наступний тиждень"
+
+msgid "Year:"
+msgstr "Рік:"
+
+msgid "Week:"
+msgstr "Тиждень:"
+
+msgid "Back to current week"
+msgstr "Повернутися до поточного тижня"
+
+msgid "Submitted for Approval"
+msgstr "Подано на затвердження"
+
+msgid "Timesheet Returned with Feedback"
+msgstr "Табель повернуто з коментарем"
+
+msgid "Manager's Note:"
+msgstr "Примітка менеджера:"
+
+msgid "Please review the notes, make the necessary corrections to your logged hours, and submit again for approval."
+msgstr "Будь ласка, перегляньте зауваження, внесіть необхідні виправлення до відпрацьованих годин і надішліть знову на затвердження."
+
+msgid "Project / Task"
+msgstr "Проєкт / Завдання"
+
+msgid "Total"
+msgstr "Всього"
+
+msgid "Hide task %(title)s for current week"
+msgstr "Приховати завдання %(title)s на поточний тиждень"
+
+msgid "Hide this task for the current week"
+msgstr "Приховати це завдання на поточний тиждень"
+
+msgid "Hide task %(title)s"
+msgstr "Приховати завдання %(title)s"
+
+msgid "This project is closed"
+msgstr "Цей проєкт закрито"
+
+msgid "Short Day (7 hours)"
+msgstr "Скорочений день (7 годин)"
+
+msgid "Weekend"
+msgstr "Вихідний"
+
+msgid "Double-click to add/edit work details"
+msgstr "Подвійний клік для додавання/редагування деталей роботи"
+
+msgid "You don't have any assigned tasks for this week."
+msgstr "У вас немає призначених завдань на цей тиждень."
+
+msgid "Daily Totals:"
+msgstr "Всього за день:"
+
+msgid "Total hours this week:"
+msgstr "Всього годин за тиждень:"
+
+msgid "Save Draft"
+msgstr "Зберегти чернетку"
+
+msgid "Submit for Approval"
+msgstr "Подати на затвердження"
+
+msgid "Recall to Draft"
+msgstr "Відкликати в чернетку"
+
+msgid "Work Details"
+msgstr "Деталі роботи"
+
+msgid "Close dialog"
+msgstr "Закрити вікно"
+
+msgid "Log details for your activity."
+msgstr "Запишіть деталі вашої діяльності."
+
+msgid "Work details comment"
+msgstr "Коментар до виконаної роботи"
+
+msgid "E.g., Designed 3D model for the main deck..."
+msgstr "Наприклад: Розробка 3D-моделі головної палуби..."
+
+msgid "Cancel"
+msgstr "Скасувати"
+
+msgid "Save Note"
+msgstr "Зберегти примітку"
+
+msgid "Cancel note"
+msgstr "Скасувати примітку"
+
+msgid "Yearly Overview"
+msgstr "Річний огляд"
+
+msgid "Timesheet Matrix & Statistics"
+msgstr "Матриця табелів та статистика"
+
+msgid "Previous Year"
+msgstr "Попередній рік"
+
+msgid "Next Year"
+msgstr "Наступний рік"
+
+msgid "Weeks Matrix"
+msgstr "Матриця тижнів"
+
+msgid "Empty"
+msgstr "Порожньо"
+
+msgid "Week"
+msgstr "Тиждень"
+
+msgid "Empty week"
+msgstr "Порожній тиждень"
+
+msgid "Time Allocation"
+msgstr "Розподіл часу"
+
+msgid "(Excluding Administrative)"
+msgstr "(Без урахування адміністративних)"
+
+msgid "Yearly time allocation doughnut chart"
+msgstr "Кругова діаграма розподілу часу за рік"
+
+msgid "Commercial:"
+msgstr "Комерційний:"
+
+msgid "Non-Commercial:"
+msgstr "Некомерційний:"
+
+msgid "No commercial or non-commercial"
+msgstr "Немає комерційних або некомерційних"
+
+msgid "hours logged yet."
+msgstr "годин, записаних на цей час."
+
+msgid "Click on any day to toggle its status: Standard ➔ Holiday ➔ Short Day ➔ Free Monday"
+msgstr "Натисніть на будь-який день, щоб змінити його статус: Звичайний ➔ Свято ➔ Скорочений ➔ Вільний понеділок"
+
+msgid "Overview of company holidays, short days, and special weekends."
+msgstr "Огляд святкових днів, скорочених робочих днів та особливих вихідних."
+
+msgid "Standard Weekend"
+msgstr "Звичайний вихідний"
+
+msgid "Mo"
+msgstr "Пн"
+
+msgid "Tu"
+msgstr "Вт"
+
+msgid "We"
+msgstr "Ср"
+
+msgid "Th"
+msgstr "Чт"
+
+msgid "Fr"
+msgstr "Пт"
+
+msgid "Sa"
+msgstr "Сб"
+
+msgid "Su"
+msgstr "Нд"
+
+msgid "January"
+msgstr "Січень"
+
+msgid "February"
+msgstr "Лютий"
+
+msgid "March"
+msgstr "Березень"
+
+msgid "April"
+msgstr "Квітень"
+
+msgid "May"
+msgstr "Травень"
+
+msgid "June"
+msgstr "Червень"
+
+msgid "July"
+msgstr "Липень"
+
+msgid "August"
+msgstr "Серпень"
+
+msgid "September"
+msgstr "Вересень"
+
+msgid "October"
+msgstr "Жовтень"
+
+msgid "November"
+msgstr "Листопад"
+
+msgid "December"
+msgstr "Грудень"
+
+msgid "click to change day type"
+msgstr "натисніть, щоб змінити тип дня"
+
+msgid "Review and approve timesheets submitted by your team."
+msgstr "Перевіряйте та затверджуйте табелі, подані вашою командою."
+
+msgid "Engineer"
+msgstr "Інженер"
+
+msgid "Period"
+msgstr "Період"
+
+msgid "Total Hours"
+msgstr "Всього годин"
+
+msgid "Actions"
+msgstr "Дії"
+
+msgid "Timesheet ID:"
+msgstr "ID табеля:"
+
+msgid "View Details"
+msgstr "Переглянути деталі"
+
+msgid "Approve"
+msgstr "Затвердити"
+
+msgid "Reject"
+msgstr "Відхилити"
+
+msgid "Reject Timesheet"
+msgstr "Відхилити табель"
+
+msgid "Provide feedback for <strong>%(user)s</strong> (Week %(week)s, %(year)s):"
+msgstr "Залиште відгук для <strong>%(user)s</strong> (Тиждень %(week)s, %(year)s):"
+
+msgid "Rejection comment"
+msgstr "Коментар відхилення"
+
+msgid "Explain why the timesheet was rejected and what to fix..."
+msgstr "Поясніть причину відхилення та що потрібно виправити..."
+
+msgid "Cancel rejection"
+msgstr "Скасувати відхилення"
+
+msgid "Confirm Rejection"
+msgstr "Підтвердити відхилення"
+
+msgid "Confirm timesheet rejection"
+msgstr "Підтвердити відхилення табеля"
+
+msgid "All caught up!"
+msgstr "Все перевірено!"
+
+msgid "No timesheets pending your approval."
+msgstr "Немає табелів, що очікують вашого затвердження."
+
+msgid "✅ Timesheet #%(id)s for <strong>%(user)s</strong> approved!"
+msgstr "✅ Табель #%(id)s користувача <strong>%(user)s</strong> затверджено!"
+
+msgid "❌ Timesheet #%(id)s for <strong>%(user)s</strong> returned to draft with feedback."
+msgstr "❌ Табель #%(id)s користувача <strong>%(user)s</strong> повернуто в чернетку з коментарем."
+
+msgid "Returned to Draft"
+msgstr "Повернуто в чернетку"
+
+msgid "Historical Archive"
+msgstr "Історичний архів"
+
+msgid "The year <strong>%(year)s</strong> is closed. Integral progress is only tracked for active current projects. Below you can find the final statistics and logged hours for individual tasks."
+msgstr "Рік <strong>%(year)s</strong> закрито. Інтегральний прогрес відстежується лише для активних поточних проєктів. Нижче наведено підсумкову статистику та списані години за окремими завданнями."
+
+msgid "Future Planning"
+msgstr "Майбутнє планування"
+
+msgid "The year <strong>%(year)s</strong> has not started yet. Progress tracking will become available when the year begins."
+msgstr "Рік <strong>%(year)s</strong> ще не розпочався. Відстеження прогресу стане доступним після початку року."
+
+msgid "Yearly Progress Board"
+msgstr "Річна дошка прогресу"
+
+msgid "Integral Project Performance (Commercial & Internal)"
+msgstr "Інтегральні показники проєктів (комерційні та внутрішні)"
+
+msgid "Total Spent:"
+msgstr "Всього списано:"
+
+msgid "Project Timeline"
+msgstr "Графік проєкту"
+
+msgid "Budget Utilization"
+msgstr "Використання бюджету"
+
+msgid "Track budget utilization and deadlines for your active tasks."
+msgstr "Відстежуйте використання бюджету та дедлайни за активними завданнями."
+
+msgid "Closed"
+msgstr "Закрито"
+
+msgid "Start:"
+msgstr "Старт:"
+
+msgid "Deadline:"
+msgstr "Дедлайн:"
+
+msgid "Spent:"
+msgstr "Списано:"
+
+msgid "Budget:"
+msgstr "Бюджет:"
+
+msgid "Today"
+msgstr "Сьогодні"
+
+msgid "No active projects or logged hours found for %(year)s."
+msgstr "Для %(year)s року не знайдено активних проєктів або списаних годин."
+
+msgid "Back to Approvals"
+msgstr "Назад до затвердження"
+
+msgid "Timesheet Details"
+msgstr "Деталі табеля"
+
+msgid "Engineer:"
+msgstr "Інженер:"
+
+msgid "No hours logged."
+msgstr "Годин не списано."
+
+msgid "Please review the logged hours carefully before approving."
+msgstr "Будь ласка, уважно перевірте списані години перед затвердженням."
+
+msgid "Reject & Return"
+msgstr "Відхилити та повернути"
+
+msgid "Approve Timesheet"
+msgstr "Затвердити табель"
+
+msgid "Login"
+msgstr "Вхід"
+
+msgid "Sign in to your account"
+msgstr "Увійдіть у свій обліковий запис"
+
+msgid "Username and password do not match. Please try again."
+msgstr "Ім’я користувача або пароль неправильні. Спробуйте ще раз."
+
+msgid "Username"
+msgstr "Ім’я користувача"
+
+msgid "Password"
+msgstr "Пароль"
+
+msgid "Sign in"
+msgstr "Увійти"
