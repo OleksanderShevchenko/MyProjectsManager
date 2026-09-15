@@ -1,3 +1,4 @@
+{% load i18n %}
 <button
     id="day-cell-{{ day.date|date:'Y-m-d' }}"
     type="button"
@@ -16,7 +17,7 @@
         {% elif day.is_weekend %} bg-gray-100 text-gray-500 border-transparent
         {% else %} bg-white text-gray-700 border-transparent {% endif %}
         {% if is_admin %} hover:bg-gray-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 {% else %} cursor-default {% endif %}"
-    aria-label="{{ day.date|date:'l, d F Y' }}{% if day.day_type %}, {{ day.day_type }}{% endif %}{% if is_admin %}, click to change day type{% endif %}"
+    aria-label="{{ day.date|date:'l, d F Y' }}{% if day.day_type %}, {{ day.day_type }}{% endif %}{% if is_admin %}, {% trans 'click to change day type' %}{% endif %}"
     title="{{ day.date|date:'Y-m-d' }}{% if day.day_type %}: {{ day.day_type }}{% endif %}">
     {{ day.day_num }}
 </button>
