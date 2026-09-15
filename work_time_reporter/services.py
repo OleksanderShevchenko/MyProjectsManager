@@ -703,7 +703,9 @@ class CalendarService:
           Free Mondays cannot be assigned to non-Monday weekdays.
         """
         if target_date is not None and target_date.weekday() >= 5:
-            return 'CLEAR' if current_type == 'HOLIDAY' else 'HOLIDAY'
+            if current_type in [None, '']:
+                return 'HOLIDAY'
+            return 'CLEAR'
 
         if target_date is not None and target_date.weekday() == 0:
             cycle = {
