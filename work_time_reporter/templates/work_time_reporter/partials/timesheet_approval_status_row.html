@@ -1,12 +1,13 @@
+{% load i18n %}
 {% if action == 'approve' %}
 <tr id="timesheet-row-{{ timesheet.id }}" class="bg-green-50 border-l-4 border-green-500 transition-all duration-300">
     <td colspan="4" class="px-6 py-4">
         <div role="status" aria-live="polite" class="flex items-center justify-between">
             <span class="text-sm font-semibold text-green-900">
-                ✅ Timesheet #{{ timesheet.id }} for <strong>{{ timesheet.user.get_full_name|default:timesheet.user.username }}</strong> approved!
+                {% blocktrans with id=timesheet.id user=timesheet.user.get_full_name|default:timesheet.user.username %}✅ Timesheet #{{ id }} for <strong>{{ user }}</strong> approved!{% endblocktrans %}
             </span>
             <span class="text-xs text-green-700 bg-green-100 px-2.5 py-1 rounded-full font-medium">
-                Approved
+                {% trans "Approved" %}
             </span>
         </div>
     </td>
@@ -16,10 +17,10 @@
     <td colspan="4" class="px-6 py-4">
         <div role="status" aria-live="polite" class="flex items-center justify-between">
             <span class="text-sm font-semibold text-amber-900">
-                ❌ Timesheet #{{ timesheet.id }} for <strong>{{ timesheet.user.get_full_name|default:timesheet.user.username }}</strong> returned to draft with feedback.
+                {% blocktrans with id=timesheet.id user=timesheet.user.get_full_name|default:timesheet.user.username %}❌ Timesheet #{{ id }} for <strong>{{ user }}</strong> returned to draft with feedback.{% endblocktrans %}
             </span>
             <span class="text-xs text-amber-700 bg-amber-100 px-2.5 py-1 rounded-full font-medium">
-                Returned to Draft
+                {% trans "Returned to Draft" %}
             </span>
         </div>
     </td>
