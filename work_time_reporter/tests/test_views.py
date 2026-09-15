@@ -260,6 +260,52 @@ class TestHtmxIntegration:
         )
         assert response.status_code == 403
 
+    def test_calendar_settings_htmx_post_monday_free_monday(
+        self, client, engineer_user
+    ):
+        """Admin HTMX POST allows FREE_MONDAY on Monday and calculates next_type as CLEAR."""
+        engineer_user.is_superuser = True
+        engineer_user.save()
+        client.force_login(engineer_user)
+
+        url = reverse('work_time_reporter:calendar_settings', kwargs={'year': 2026})
+        response = client.post(
+            url,
+            data={'date': '2026-05-04', 'type': 'FREE_MONDAY'},  # Monday
+            HTTP_HX_REQUEST='true'
+        )
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        assert 'FREE_MONDAY' in content
+        assert '"type": "CLEAR"' in content
+
+    def test_calendar_settings_htmx_post_rejects_invalid_day_types(
+        self, client, engineer_user
+    ):
+        """Admin HTMX POST rejects SHORT_DAY on weekends and FREE_MONDAY on non-Mondays."""
+        engineer_user.is_superuser = True
+        engineer_user.save()
+        client.force_login(engineer_user)
+
+        url = reverse('work_time_reporter:calendar_settings', kwargs={'year': 2026})
+        # Try SHORT_DAY on Sunday
+        resp_weekend = client.post(
+            url,
+            data={'date': '2026-05-03', 'type': 'SHORT_DAY'},  # Sunday
+            HTTP_HX_REQUEST='true'
+        )
+        assert resp_weekend.status_code == 400
+        assert 'Only holidays can be set on weekends' in resp_weekend.content.decode('utf-8')
+
+        # Try FREE_MONDAY on Tuesday
+        resp_tue = client.post(
+            url,
+            data={'date': '2026-05-05', 'type': 'FREE_MONDAY'},  # Tuesday
+            HTTP_HX_REQUEST='true'
+        )
+        assert resp_tue.status_code == 400
+        assert 'Free Monday can only be set on Mondays' in resp_tue.content.decode('utf-8')
+
     def test_team_approvals_htmx_approve_returns_status_row(
         self, client, manager_user, active_project, active_task, draft_timesheet
     ):
