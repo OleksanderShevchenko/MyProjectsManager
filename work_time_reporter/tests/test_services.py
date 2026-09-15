@@ -544,6 +544,57 @@ class TestCalendarService:
         jan1 = next(d for d in all_days if d['date'] == datetime.date(2026, 1, 1))
         assert jan1['day_type'] == 'HOLIDAY'
 
+    def test_get_next_day_type_monday_full_cycle(self):
+        """Mondays support full cycle: None -> HOLIDAY -> SHORT_DAY -> FREE_MONDAY -> CLEAR."""
+        monday = datetime.date(2026, 5, 4)  # Monday
+        assert CalendarService.get_next_day_type(None, monday) == 'HOLIDAY'
+        assert CalendarService.get_next_day_type('HOLIDAY', monday) == 'SHORT_DAY'
+        assert CalendarService.get_next_day_type('SHORT_DAY', monday) == 'FREE_MONDAY'
+        assert CalendarService.get_next_day_type('FREE_MONDAY', monday) == 'CLEAR'
+
+    def test_get_next_day_type_weekday_excludes_free_monday(self):
+        """Tue-Fri cycle excludes Free Monday: None -> HOLIDAY -> SHORT_DAY -> CLEAR."""
+        tuesday = datetime.date(2026, 5, 5)  # Tuesday
+        friday = datetime.date(2026, 5, 8)   # Friday
+        for day in [tuesday, friday]:
+            assert CalendarService.get_next_day_type(None, day) == 'HOLIDAY'
+            assert CalendarService.get_next_day_type('HOLIDAY', day) == 'SHORT_DAY'
+            assert CalendarService.get_next_day_type('SHORT_DAY', day) == 'CLEAR'
+            assert CalendarService.get_next_day_type('FREE_MONDAY', day) == 'CLEAR'
+
+    def test_get_next_day_type_weekend_only_holiday(self):
+        """Weekends only support HOLIDAY: None -> HOLIDAY -> CLEAR (no Short Day or Free Monday)."""
+        saturday = datetime.date(2026, 5, 2)  # Saturday
+        sunday = datetime.date(2026, 5, 3)    # Sunday
+        for weekend_day in [saturday, sunday]:
+            assert CalendarService.get_next_day_type(None, weekend_day) == 'HOLIDAY'
+            assert CalendarService.get_next_day_type('HOLIDAY', weekend_day) == 'CLEAR'
+            assert CalendarService.get_next_day_type('SHORT_DAY', weekend_day) == 'CLEAR'
+            assert CalendarService.get_next_day_type('FREE_MONDAY', weekend_day) == 'CLEAR'
+
+    def test_update_day_validations_for_weekends_and_free_mondays(self):
+        """Verify update_day prevents short days on weekends and Free Monday on non-Mondays."""
+        # Weekend cannot be SHORT_DAY or FREE_MONDAY
+        res_sat_short = CalendarService.update_day('2026-05-02', 'SHORT_DAY')
+        assert res_sat_short['success'] is False
+        assert 'Only holidays can be set on weekends' in res_sat_short['message']
+
+        res_sun_free = CalendarService.update_day('2026-05-03', 'FREE_MONDAY')
+        assert res_sun_free['success'] is False
+
+        # Weekend can be HOLIDAY
+        res_sun_holiday = CalendarService.update_day('2026-05-03', 'HOLIDAY')
+        assert res_sun_holiday['success'] is True
+
+        # Non-Monday weekday cannot be FREE_MONDAY
+        res_tue_free = CalendarService.update_day('2026-05-05', 'FREE_MONDAY')
+        assert res_tue_free['success'] is False
+        assert 'Free Monday can only be set on Mondays' in res_tue_free['message']
+
+        # Monday can be FREE_MONDAY
+        res_mon_free = CalendarService.update_day('2026-05-04', 'FREE_MONDAY')
+        assert res_mon_free['success'] is True
+
 
 @pytest.mark.django_db
 class TestStructuredLogging:
