@@ -1,0 +1,23 @@
+{% load i18n %}
+<button
+    id="day-cell-{{ day.date|date:'Y-m-d' }}"
+    type="button"
+    {% if is_admin %}
+    hx-post="{% url 'work_time_reporter:calendar_settings' year=year %}"
+    hx-vals='{"date": "{{ day.date|date:"Y-m-d" }}", "type": "{{ day.next_type }}"}'
+    hx-target="this"
+    hx-swap="outerHTML"
+    {% else %}
+    disabled
+    {% endif %}
+    class="w-8 h-8 rounded flex items-center justify-center border text-xs font-semibold transition-colors
+        {% if day.day_type == 'HOLIDAY' %} bg-red-100 text-red-800 border-red-300 font-bold
+        {% elif day.day_type == 'SHORT_DAY' %} bg-orange-100 text-orange-800 border-orange-300 font-bold
+        {% elif day.day_type == 'FREE_MONDAY' %} bg-purple-100 text-purple-800 border-purple-300 font-bold
+        {% elif day.is_weekend %} bg-gray-100 text-gray-500 border-transparent
+        {% else %} bg-white text-gray-700 border-transparent {% endif %}
+        {% if is_admin %} hover:bg-gray-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 {% else %} cursor-default {% endif %}"
+    aria-label="{{ day.date|date:'l, d F Y' }}{% if day.day_type %}, {{ day.day_type }}{% endif %}{% if is_admin %}, {% trans 'click to change day type' %}{% endif %}"
+    title="{{ day.date|date:'Y-m-d' }}{% if day.day_type %}: {{ day.day_type }}{% endif %}">
+    {{ day.day_num }}
+</button>

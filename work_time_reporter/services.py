@@ -639,6 +639,11 @@ class CalendarService:
                 CompanyCalendar.objects.filter(date=target_date).delete()
                 logger.info("Company calendar customization cleared for date %s", target_date)
             else:
+                if target_date.weekday() >= 5 and new_type != 'HOLIDAY':
+                    return {'success': False, 'message': 'Only holidays can be set on weekends.'}
+                if target_date.weekday() != 0 and new_type == 'FREE_MONDAY':
+                    return {'success': False, 'message': 'Free Monday can only be set on Mondays.'}
+
                 CompanyCalendar.objects.update_or_create(
                     date=target_date,
                     defaults={'day_type': new_type}
@@ -671,7 +676,8 @@ class CalendarService:
                             'date': day,
                             'day_num': day.day,
                             'is_weekend': is_weekend,
-                            'day_type': day_type
+                            'day_type': day_type,
+                            'next_type': CalendarService.get_next_day_type(day_type, target_date=day),
                         })
                     else:
                         week_days.append(None)
@@ -682,3 +688,40 @@ class CalendarService:
                 'weeks': month_weeks
             })
         return months_data
+
+    @staticmethod
+    def get_next_day_type(current_type: str | None, target_date: datetime.date | None = None) -> str:
+        """
+        Returns the next day type in the rotation cycle based on the day of the week:
+        - Weekends (Saturday/Sunday, weekday >= 5):
+          Standard (None) -> HOLIDAY -> CLEAR.
+          Short days and Free Mondays cannot be assigned to weekend days.
+        - Mondays (weekday == 0):
+          Standard (None) -> HOLIDAY -> SHORT_DAY -> FREE_MONDAY -> CLEAR.
+        - Other Weekdays (Tuesday to Friday, 1 <= weekday <= 4):
+          Standard (None) -> HOLIDAY -> SHORT_DAY -> CLEAR.
+          Free Mondays cannot be assigned to non-Monday weekdays.
+        """
+        if target_date is not None and target_date.weekday() >= 5:
+            if current_type in [None, '']:
+                return 'HOLIDAY'
+            return 'CLEAR'
+
+        if target_date is not None and target_date.weekday() == 0:
+            cycle = {
+                None: 'HOLIDAY',
+                '': 'HOLIDAY',
+                'HOLIDAY': 'SHORT_DAY',
+                'SHORT_DAY': 'FREE_MONDAY',
+                'FREE_MONDAY': 'CLEAR',
+            }
+            return cycle.get(current_type, 'CLEAR')
+
+        cycle = {
+            None: 'HOLIDAY',
+            '': 'HOLIDAY',
+            'HOLIDAY': 'SHORT_DAY',
+            'SHORT_DAY': 'CLEAR',
+            'FREE_MONDAY': 'CLEAR',
+        }
+        return cycle.get(current_type, 'CLEAR')
