@@ -15,15 +15,15 @@
             <select name="year" aria-label="{% trans 'Filter by Year' %}" class="rounded-md border border-gray-300 py-1.5 px-3 bg-white text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
                 <option value="">{% trans "All Years" %}</option>
                 {% for y in available_years %}
-                <option value="{{ y }}" {% if selected_year == y|stringformat:"i" %}selected{% endif %}>{{ y }}</option>
+                <option value="{{ y }}" {% if selected_year == y|stringformat:"s" or selected_year == y %}selected{% endif %}>{{ y }}</option>
                 {% endfor %}
             </select>
 
             <select name="status" aria-label="{% trans 'Filter by Status' %}" class="rounded-md border border-gray-300 py-1.5 px-3 bg-white text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
                 <option value="">{% trans "All Statuses" %}</option>
-                <option value="DRAFT">{% trans "Draft" %}</option>
-                <option value="SUBMITTED">{% trans "Submitted" %}</option>
-                <option value="APPROVED">{% trans "Approved" %}</option>
+                <option value="DRAFT" {% if selected_status == 'DRAFT' %}selected{% endif %}>{% trans "Draft" %}</option>
+                <option value="SUBMITTED" {% if selected_status == 'SUBMITTED' %}selected{% endif %}>{% trans "Submitted" %}</option>
+                <option value="APPROVED" {% if selected_status == 'APPROVED' %}selected{% endif %}>{% trans "Approved" %}</option>
             </select>
         </form>
     </div>
