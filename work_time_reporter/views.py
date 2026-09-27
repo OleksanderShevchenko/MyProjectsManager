@@ -2,13 +2,16 @@ import datetime
 import json
 
 from django.contrib import messages
+from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse, HttpResponseForbidden
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
+from django.utils.translation import gettext as _
 
-from .models import CompanyCalendar, WeeklyTimesheet
+from .models import CompanyCalendar, WeeklyTimesheet, Project
 from .services import TimesheetService, CalendarService
+from .exports import ExportService
 from .decorators import manager_required
 
 
@@ -226,3 +229,62 @@ def calendar_settings(request, year: int = None):
         'is_admin': is_admin,
     }
     return render(request, 'work_time_reporter/calendar_settings.html', context)
+
+
+@login_required(login_url='work_time_reporter:login')
+def export_weekly_pdf(request, timesheet_id: int):
+    """
+    Exports a single weekly timesheet as a downloadable PDF document.
+    Authorized for the timesheet owner, their project manager, or an administrator.
+    """
+    timesheet = get_object_or_404(
+        WeeklyTimesheet.objects.select_related('user', 'approved_by'),
+        id=timesheet_id
+    )
+
+    is_owner = request.user == timesheet.user
+    is_admin = request.user.is_superuser or getattr(request.user, 'is_admin_role', False)
+    is_manager = Project.objects.filter(manager=request.user, is_active=True, members=timesheet.user).exists()
+
+    if not (is_owner or is_admin or is_manager):
+        return HttpResponseForbidden(_("Access denied. You do not have permission to export this timesheet."))
+
+    pdf_content = ExportService.generate_weekly_pdf(timesheet)
+    filename = f"Timesheet_{timesheet.user.username}_{timesheet.year}_W{timesheet.week_number:02d}.pdf"
+
+    response = HttpResponse(pdf_content, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    response['Content-Length'] = len(pdf_content)
+    return response
+
+
+@login_required(login_url='work_time_reporter:login')
+def export_yearly_excel(request, year: int = None):
+    """
+    Exports an employee's annual work report as an Excel spreadsheet (.xlsx).
+    """
+    if not year:
+        year = timezone.now().year
+
+    target_user = request.user
+    user_id = request.GET.get('user_id')
+    if user_id and str(user_id) != str(request.user.id):
+        User = get_user_model()
+        target_user = get_object_or_404(User, id=user_id)
+
+        is_admin = request.user.is_superuser or getattr(request.user, 'is_admin_role', False)
+        is_manager = Project.objects.filter(manager=request.user, is_active=True, members=target_user).exists()
+        if not (is_admin or is_manager):
+            return HttpResponseForbidden(_("Access denied. You do not have permission to export this user's report."))
+
+    excel_content = ExportService.generate_yearly_excel(target_user, year)
+    filename = f"Yearly_Timesheet_{target_user.username}_{year}.xlsx"
+
+    response = HttpResponse(
+        excel_content,
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    response['Content-Length'] = len(excel_content)
+    return response
+
