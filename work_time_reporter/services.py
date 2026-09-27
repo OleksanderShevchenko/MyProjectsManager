@@ -121,8 +121,8 @@ class TimesheetService:
                         timesheet.rejection_comment = ''  # Clear any previous rejection comment upon resubmission
                         timesheet.save()
 
-                        # Dispatch email notification to managers on transaction commit
-                        transaction.on_commit(lambda: NotificationService.notify_timesheet_submitted(timesheet))
+                        # Dispatch email notification to managers
+                        NotificationService.notify_timesheet_submitted(timesheet)
 
                         logger.info(
                             "Timesheet %s (Year: %s, Week: %s) submitted by user %s with total %s hours",
