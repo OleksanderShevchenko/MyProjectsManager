@@ -1,0 +1,15 @@
+{% load i18n %}{% blocktrans with name=employee_name %}Hello {{ name }},{% endblocktrans %}
+
+{% blocktrans with week=week_number year=year manager=manager_name %}Great news! Your timesheet for Week {{ week }}, {{ year }} has been approved by {{ manager }}.{% endblocktrans %}
+
+{% trans "Summary" %}:
+- {% trans "Period" %}: {{ period_start }} – {{ period_end }} (Week {{ week_number }})
+- {% trans "Total Approved Hours" %}: {{ total_hours }} h
+- {% trans "Reviewed By" %}: {{ manager_name }}
+- {% trans "Status" %}: {% trans "Approved" %}
+
+{% trans "You can view your timesheet in the dashboard" %}:
+{{ dashboard_url }}
+
+---
+{% trans "This is an automated notification from MyProjectsManager. Please do not reply directly to this email." %}
