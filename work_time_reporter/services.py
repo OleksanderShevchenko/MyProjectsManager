@@ -9,6 +9,8 @@ from django.db.models import Sum, Min, Q, Max
 from django.urls import reverse
 from django.utils import timezone
 from .models import Task, TimeLog, WeeklyTimesheet, Project, CompanyCalendar
+from .notifications import NotificationService
+
 
 logger = logging.getLogger(__name__)
 
@@ -118,6 +120,9 @@ class TimesheetService:
                         timesheet.submitted_at = timezone.now()
                         timesheet.rejection_comment = ''  # Clear any previous rejection comment upon resubmission
                         timesheet.save()
+
+                        # Dispatch email notification to managers on transaction commit
+                        transaction.on_commit(lambda: NotificationService.notify_timesheet_submitted(timesheet))
 
                         logger.info(
                             "Timesheet %s (Year: %s, Week: %s) submitted by user %s with total %s hours",
@@ -472,6 +477,7 @@ class TimesheetService:
             ts.approved_at = timezone.now()
             ts.approved_by = reviewer
             ts.save()
+            NotificationService.notify_timesheet_approved(ts, reviewer=reviewer)
             logger.info(
                 "Timesheet %s (owner: %s) approved by manager %s",
                 ts.id,
@@ -483,6 +489,7 @@ class TimesheetService:
             ts.status = WeeklyTimesheet.Status.DRAFT
             ts.rejection_comment = rejection_comment.strip()
             ts.save()
+            NotificationService.notify_timesheet_rejected(ts, reviewer=reviewer, rejection_comment=ts.rejection_comment)
             logger.info(
                 "Timesheet %s (owner: %s) rejected by manager %s. Feedback: %s",
                 ts.id,
