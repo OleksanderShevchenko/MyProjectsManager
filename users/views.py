@@ -125,7 +125,11 @@ def history_view(request):
 
     year = request.GET.get('year', '').strip()
     if year and year.isdigit():
-        qs = qs.filter(year=int(year))
+        year_int = int(year)
+        qs = qs.filter(year=year_int)
+        if year_int not in available_years:
+            available_years.append(year_int)
+            available_years.sort(reverse=True)
 
     status = request.GET.get('status', '').strip()
     if status and status in WeeklyTimesheet.Status.values:
