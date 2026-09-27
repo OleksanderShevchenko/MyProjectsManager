@@ -33,4 +33,5 @@ urlpatterns = [
     # url for interactive CompanyCalendar dashboard
     path('settings/calendar/<int:year>/', views.calendar_settings, name='calendar_settings'),
     path('settings/calendar/', views.calendar_settings, name='calendar_settings_current'),
+    path('settings/calendar/<int:year>/modal/<str:date_str>/', views.calendar_day_modal, name='calendar_day_modal'),
 ]
