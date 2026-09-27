@@ -27,11 +27,11 @@ class NotificationService:
     def get_base_url() -> str:
         """
         Returns configured application base URL (e.g. 'https://myprojectsmanager.com'),
-        falling back to environment variable APP_BASE_URL or 'http://localhost:8000'.
+        falling back to environment variable APP_BASE_URL or 'http://localhost:8080'.
         """
         url = os.environ.get('APP_BASE_URL', '').rstrip('/')
         if not url:
-            return 'http://localhost:8000'
+            return 'http://localhost:8080'
         return url
 
     @staticmethod
