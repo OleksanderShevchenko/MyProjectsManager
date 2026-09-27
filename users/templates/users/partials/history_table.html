@@ -1,0 +1,120 @@
+{% load i18n %}
+<div id="history-container" class="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
+    <div class="p-6 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h2 class="text-xl font-bold text-gray-900">{% trans "Timesheet Submission History" %}</h2>
+            <p class="text-sm text-gray-500 mt-1">{% trans "View, track approval status, and export your past weekly reports." %}</p>
+        </div>
+
+        <!-- Filter Controls -->
+        <form hx-get="{% url 'users:history' %}"
+              hx-target="#history-container"
+              hx-swap="outerHTML"
+              hx-trigger="change"
+              class="flex items-center space-x-3 text-sm">
+            <select name="year" aria-label="{% trans 'Filter by Year' %}" class="rounded-md border border-gray-300 py-1.5 px-3 bg-white text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                <option value="">{% trans "All Years" %}</option>
+                {% for y in available_years %}
+                <option value="{{ y }}" {% if selected_year == y|stringformat:"i" %}selected{% endif %}>{{ y }}</option>
+                {% endfor %}
+            </select>
+
+            <select name="status" aria-label="{% trans 'Filter by Status' %}" class="rounded-md border border-gray-300 py-1.5 px-3 bg-white text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                <option value="">{% trans "All Statuses" %}</option>
+                <option value="DRAFT">{% trans "Draft" %}</option>
+                <option value="SUBMITTED">{% trans "Submitted" %}</option>
+                <option value="APPROVED">{% trans "Approved" %}</option>
+            </select>
+        </form>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 text-sm">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th scope="col" class="px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider text-xs">{% trans "Week & Year" %}</th>
+                    <th scope="col" class="px-6 py-3 text-center font-medium text-gray-500 uppercase tracking-wider text-xs">{% trans "Status" %}</th>
+                    <th scope="col" class="px-6 py-3 text-center font-medium text-gray-500 uppercase tracking-wider text-xs">{% trans "Total Hours" %}</th>
+                    <th scope="col" class="px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider text-xs">{% trans "Reviewed By / Feedback" %}</th>
+                    <th scope="col" class="px-6 py-3 text-right font-medium text-gray-500 uppercase tracking-wider text-xs">{% trans "Actions" %}</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 bg-white">
+                {% for ts in timesheets %}
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="font-bold text-gray-900">
+                            {% trans "Week" %} {{ ts.week_number }}
+                        </div>
+                        <div class="text-xs text-gray-500">
+                            {{ ts.year }}
+                        </div>
+                    </td>
+
+                    <td class="px-6 py-4 whitespace-nowrap text-center">
+                        {% if ts.status == 'APPROVED' %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 border border-green-200">
+                                ✅ {% trans "Approved" %}
+                            </span>
+                        {% elif ts.status == 'SUBMITTED' %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800 border border-yellow-200">
+                                ⏳ {% trans "Submitted" %}
+                            </span>
+                        {% else %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-800 border border-gray-200">
+                                ✏️ {% trans "Draft" %}
+                            </span>
+                        {% endif %}
+                    </td>
+
+                    <td class="px-6 py-4 whitespace-nowrap text-center font-semibold text-gray-900">
+                        {{ ts.total_hours|default:"0" }} h
+                    </td>
+
+                    <td class="px-6 py-4 text-xs text-gray-600">
+                        {% if ts.approved_by %}
+                            <span class="text-green-700 font-medium">{% trans "Approved by" %} {{ ts.approved_by.get_full_name|default:ts.approved_by.username }}</span>
+                            {% if ts.approved_at %}
+                                <span class="text-gray-400 block">{{ ts.approved_at|date:"Y-m-d H:i" }}</span>
+                            {% endif %}
+                        {% elif ts.rejection_comment and ts.status == 'DRAFT' %}
+                            <div class="text-amber-800 bg-amber-50 p-2 rounded border border-amber-200 max-w-md">
+                                <span class="font-bold block text-amber-900">{% trans "Returned for revision:" %}</span>
+                                {{ ts.rejection_comment }}
+                            </div>
+                        {% else %}
+                            <span class="text-gray-400">—</span>
+                        {% endif %}
+                    </td>
+
+                    <td class="px-6 py-4 whitespace-nowrap text-right space-x-2">
+                        <a href="{% url 'work_time_reporter:dashboard_week' ts.year ts.week_number %}"
+                           class="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors">
+                            {% trans "Open" %}
+                        </a>
+
+                        <a href="{% url 'work_time_reporter:export_weekly_pdf' ts.id %}"
+                           hx-boost="false"
+                           class="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
+                           title="{% trans 'Export PDF' %}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            PDF
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="px-6 py-8 text-center text-gray-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-8 w-8 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        {% trans "No timesheets found matching the selected criteria." %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
