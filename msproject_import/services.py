@@ -114,7 +114,7 @@ class MicrosoftOAuthService:
             token_data = response.json()
             logger.info("Successfully exchanged authorization code for Microsoft access token.")
             return token_data
-        except requests.RequestException as e:
+        except Exception as e:
             logger.error("Failed to exchange OAuth code for token: %s", str(e), exc_info=True)
             raise ValueError(f"Microsoft authentication failed: {e}")
 
@@ -145,7 +145,7 @@ class MicrosoftOAuthService:
             response.raise_for_status()
             logger.info("Successfully refreshed Microsoft access token.")
             return response.json()
-        except requests.RequestException as e:
+        except Exception as e:
             logger.error("Failed to refresh Microsoft OAuth token: %s", str(e), exc_info=True)
             raise ValueError(f"Failed to refresh access token: {e}")
 
