@@ -21,5 +21,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('i18n/', include('django.conf.urls.i18n')),
     path('import/', include('msproject_import.urls')),
+    path('profile/', include('users.urls')),
     path('', include('work_time_reporter.urls')),
 ]
