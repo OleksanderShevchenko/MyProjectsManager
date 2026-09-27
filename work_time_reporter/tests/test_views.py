@@ -5,8 +5,9 @@ from django.urls import reverse
 from django.utils import timezone
 
 from work_time_reporter.models import (
+    CompanyCalendar,
     TimeLog,
-    WeeklyTimesheet
+    WeeklyTimesheet,
 )
 
 User = get_user_model()
@@ -192,6 +193,24 @@ class TestCalendarSettingsView:
         assert 'months_data' in response.context
         assert len(response.context['months_data']) == 12
 
+    def test_calendar_settings_page_includes_special_days_context(
+        self, engineer_client
+    ):
+        """Calendar settings page provides special_days list and renders descriptions."""
+        CompanyCalendar.objects.create(
+            date=datetime.date(timezone.now().year, 1, 1),
+            day_type='HOLIDAY',
+            description="New Year Day"
+        )
+        url = reverse('work_time_reporter:calendar_settings_current')
+        response = engineer_client.get(url)
+        assert response.status_code == 200
+        assert 'special_days' in response.context
+        assert len(response.context['special_days']) >= 1
+        content = response.content.decode('utf-8')
+        assert "New Year Day" in content
+        assert "Special Days &amp; Company Holidays" in content or "Special Days & Company Holidays" in content
+
 
 @pytest.mark.django_db
 class TestHtmxIntegration:
@@ -354,3 +373,68 @@ class TestHtmxIntegration:
         draft_timesheet.refresh_from_db()
         assert draft_timesheet.status == WeeklyTimesheet.Status.DRAFT
         assert draft_timesheet.rejection_comment == 'Please revise Thursday hours'
+
+    def test_calendar_settings_htmx_post_with_description(
+        self, client, engineer_user
+    ):
+        """Admin HTMX POST saves description and includes it in the updated cell and OOB table."""
+        engineer_user.is_superuser = True
+        engineer_user.save()
+        client.force_login(engineer_user)
+
+        url = reverse('work_time_reporter:calendar_settings', kwargs={'year': 2026})
+        response = client.post(
+            url,
+            data={
+                'date': '2026-08-24',
+                'type': 'HOLIDAY',
+                'description': 'Independence Day of Ukraine',
+            },
+            HTTP_HX_REQUEST='true'
+        )
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        assert 'id="day-cell-2026-08-24"' in content
+        assert 'Independence Day of Ukraine' in content
+        assert 'special-days-table-container' in content
+
+
+@pytest.mark.django_db
+class TestCalendarDayModalView:
+    def test_calendar_day_modal_admin_success(self, client, engineer_user):
+        """Admin can load modal partial for editing a specific calendar day."""
+        engineer_user.is_superuser = True
+        engineer_user.save()
+        client.force_login(engineer_user)
+
+        CompanyCalendar.objects.create(
+            date=datetime.date(2026, 8, 24),
+            day_type='HOLIDAY',
+            description='Independence Day'
+        )
+
+        url = reverse('work_time_reporter:calendar_day_modal', kwargs={'year': 2026, 'date_str': '2026-08-24'})
+        response = client.get(url, HTTP_HX_REQUEST='true')
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        assert 'Edit Calendar Day' in content
+        assert 'Independence Day' in content
+        assert 'value="HOLIDAY"' in content
+
+    def test_calendar_day_modal_forbidden_for_non_admin(self, client, engineer_user):
+        """Non-admin user cannot access the calendar day edit modal."""
+        client.force_login(engineer_user)
+        url = reverse('work_time_reporter:calendar_day_modal', kwargs={'year': 2026, 'date_str': '2026-08-24'})
+        response = client.get(url, HTTP_HX_REQUEST='true')
+        assert response.status_code == 403
+
+    def test_calendar_day_modal_invalid_date_returns_400(self, client, engineer_user):
+        """Invalid date string in modal URL returns 400 Bad Request."""
+        engineer_user.is_superuser = True
+        engineer_user.save()
+        client.force_login(engineer_user)
+
+        url = reverse('work_time_reporter:calendar_day_modal', kwargs={'year': 2026, 'date_str': 'not-a-date'})
+        response = client.get(url, HTTP_HX_REQUEST='true')
+        assert response.status_code == 400
+
