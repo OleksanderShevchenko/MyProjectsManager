@@ -225,6 +225,11 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False,
         },
+        'msproject_import': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
     },
 }
 
@@ -236,4 +241,11 @@ EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
 EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'False').lower() in ['true', '1', 'yes']
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'MyProjectsManager <noreply@myprojectsmanager.local>')
+
+# Microsoft OAuth / PWA Project Online configuration
+PWA_URL = os.environ.get('PWA_URL', '')
+AZURE_CLIENT_ID = os.environ.get('AZURE_CLIENT_ID', '')
+AZURE_CLIENT_SECRET = os.environ.get('AZURE_CLIENT_SECRET', '')
+AZURE_TENANT_ID = os.environ.get('AZURE_TENANT_ID', 'common')
+
 
