@@ -75,6 +75,8 @@ def profile_view(request):
         'managed_projects': managed_projects,
         'timesheets': history_qs,
         'available_years': available_years,
+        'selected_year': '',
+        'selected_status': '',
         'status_choices': WeeklyTimesheet.Status.choices,
     }
     return render(request, 'users/profile.html', context)
@@ -116,13 +118,16 @@ def history_view(request):
     Renders filterable timesheet submission history.
     Supports filtering by year and status via HTMX.
     """
-    qs = WeeklyTimesheet.objects.filter(user=request.user).select_related('approved_by')
+    user_timesheets = WeeklyTimesheet.objects.filter(user=request.user)
+    available_years = list(user_timesheets.values_list('year', flat=True).distinct().order_by('-year'))
 
-    year = request.GET.get('year')
+    qs = user_timesheets.select_related('approved_by')
+
+    year = request.GET.get('year', '').strip()
     if year and year.isdigit():
         qs = qs.filter(year=int(year))
 
-    status = request.GET.get('status')
+    status = request.GET.get('status', '').strip()
     if status and status in WeeklyTimesheet.Status.values:
         qs = qs.filter(status=status)
 
@@ -131,9 +136,15 @@ def history_view(request):
         ts_total = TimeLog.objects.filter(timesheet=ts).aggregate(Sum('hours'))['hours__sum'] or 0
         ts.total_hours = float(ts_total)
 
+    context = {
+        'timesheets': qs,
+        'available_years': available_years,
+        'selected_year': year,
+        'selected_status': status,
+    }
+
     if getattr(request, 'htmx', False):
-        return render(request, 'users/partials/history_table.html', {
-            'timesheets': qs,
-        })
+        return render(request, 'users/partials/history_table.html', context)
 
     return redirect('users:profile')
+
