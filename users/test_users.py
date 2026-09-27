@@ -231,6 +231,8 @@ class TestHistoryView:
         content_2026 = response_2026.content.decode()
         assert 'Week 15' in content_2026
         assert 'Week 10' not in content_2026
+        assert '<option value="2026" selected>2026</option>' in content_2026
+        assert '<option value="2025"' in content_2026
 
         # Filter by status APPROVED
         response_app = logged_client.get(
@@ -241,3 +243,16 @@ class TestHistoryView:
         content_app = response_app.content.decode()
         assert 'Week 10' in content_app
         assert 'Week 15' not in content_app
+        assert '<option value="APPROVED" selected>' in content_app
+
+    def test_history_htmx_unseen_year_preserved(self, logged_client, user):
+        """Even if filtered year (e.g. 2020) has no timesheets, it must remain selected in the dropdown."""
+        response = logged_client.get(
+            reverse('users:history'),
+            {'year': '2020'},
+            HTTP_HX_REQUEST='true',
+        )
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert '<option value="2020" selected>2020</option>' in content
+        assert 'No timesheets found' in content
