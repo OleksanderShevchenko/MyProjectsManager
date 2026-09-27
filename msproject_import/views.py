@@ -267,7 +267,7 @@ def approve_import(request, batch_id):
                     )
                     task.assignees.add(batch.user)
 
-                    year, week, _ = log.date.isocalendar()
+                    year, week, _weekday = log.date.isocalendar()
 
                     ts, created = WeeklyTimesheet.objects.get_or_create(
                         user=batch.user,
