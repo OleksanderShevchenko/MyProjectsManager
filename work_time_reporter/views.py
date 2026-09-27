@@ -193,27 +193,33 @@ def calendar_settings(request, year: int = None):
             if is_htmx:
                 date_str = request.POST.get('date')
                 new_type = request.POST.get('type')
+                description = request.POST.get('description', '')
             else:
                 data = json.loads(request.body)
                 date_str = data.get('date')
                 new_type = data.get('type')
+                description = data.get('description', '')
 
-            result = CalendarService.update_day(date_str, new_type)
+            result = CalendarService.update_day(date_str, new_type, description=description)
             if result['success']:
                 if is_htmx:
                     target_date = datetime.datetime.strptime(date_str, '%Y-%m-%d').date()
                     day_type = new_type if new_type != 'CLEAR' else None
+                    desc = description.strip() if (new_type != 'CLEAR' and description) else ''
                     day_obj = {
                         'date': target_date,
                         'day_num': target_date.day,
                         'is_weekend': target_date.weekday() >= 5,
                         'day_type': day_type,
+                        'description': desc,
                         'next_type': CalendarService.get_next_day_type(day_type, target_date=target_date),
                     }
+                    special_days = CalendarService.get_special_days(year)
                     return render(request, 'work_time_reporter/partials/calendar_day_cell.html', {
                         'day': day_obj,
                         'is_admin': is_admin,
                         'year': year,
+                        'special_days': special_days,
                     })
                 return JsonResponse({'status': 'success'})
 
@@ -222,13 +228,44 @@ def calendar_settings(request, year: int = None):
             return JsonResponse({'status': 'error', 'message': result.get('message', 'Error')}, status=400)
 
     months_data = CalendarService.get_year_calendar_data(year)
+    special_days = CalendarService.get_special_days(year)
     context = {
         'year': year,
         'months_data': months_data,
+        'special_days': special_days,
         'types': CompanyCalendar.DAY_TYPE_CHOICES,
         'is_admin': is_admin,
     }
     return render(request, 'work_time_reporter/calendar_settings.html', context)
+
+
+@login_required(login_url='work_time_reporter:login')
+def calendar_day_modal(request, year: int, date_str: str):
+    """
+    Renders an HTMX modal dialog allowing admins to edit a day's status and description.
+    """
+    is_admin = getattr(request.user, 'is_admin_role', False) or request.user.is_superuser
+    if not is_admin:
+        return HttpResponseForbidden(_("Permission denied"))
+
+    try:
+        target_date = datetime.datetime.strptime(date_str, '%Y-%m-%d').date()
+    except ValueError:
+        return HttpResponse(_("Invalid date format"), status=400)
+
+    cal_entry = CompanyCalendar.objects.filter(date=target_date).first()
+    current_type = cal_entry.day_type if cal_entry else 'CLEAR'
+    current_description = cal_entry.description if (cal_entry and cal_entry.description) else ''
+
+    context = {
+        'year': year,
+        'target_date': target_date,
+        'current_type': current_type,
+        'current_description': current_description,
+        'is_monday': target_date.weekday() == 0,
+        'types': CompanyCalendar.DAY_TYPE_CHOICES,
+    }
+    return render(request, 'work_time_reporter/partials/calendar_day_modal.html', context)
 
 
 @login_required(login_url='work_time_reporter:login')
