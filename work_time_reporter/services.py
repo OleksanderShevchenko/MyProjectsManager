@@ -636,9 +636,9 @@ class TimesheetService:
 
 class CalendarService:
     @staticmethod
-    def update_day(date_str: str, new_type: str) -> dict:
+    def update_day(date_str: str, new_type: str, description: str = '') -> dict:
         """
-        Updates or clears a customized day in CompanyCalendar.
+        Updates or clears a customized day in CompanyCalendar with an optional description.
         """
         try:
             target_date = datetime.datetime.strptime(date_str, '%Y-%m-%d').date()
@@ -651,11 +651,15 @@ class CalendarService:
                 if target_date.weekday() != 0 and new_type == 'FREE_MONDAY':
                     return {'success': False, 'message': 'Free Monday can only be set on Mondays.'}
 
+                defaults = {'day_type': new_type}
+                if description is not None:
+                    defaults['description'] = description.strip()
+
                 CompanyCalendar.objects.update_or_create(
                     date=target_date,
-                    defaults={'day_type': new_type}
+                    defaults=defaults
                 )
-                logger.info("Company calendar updated for date %s: day_type=%s", target_date, new_type)
+                logger.info("Company calendar updated for date %s: day_type=%s, description=%s", target_date, new_type, description)
             return {'success': True}
         except Exception as e:
             logger.error("Failed to update company calendar for date %s: %s", date_str, str(e), exc_info=True)
@@ -664,7 +668,7 @@ class CalendarService:
     @staticmethod
     def get_year_calendar_data(year: int) -> list:
         """
-        Generates 12-month calendar grid with company calendar customized day types.
+        Generates 12-month calendar grid with company calendar customized day types and descriptions.
         """
         custom_days = CompanyCalendar.objects.filter(date__year=year).in_bulk(field_name='date')
         cal = calendar.Calendar(firstweekday=0)
@@ -677,13 +681,16 @@ class CalendarService:
                 week_days = []
                 for day in week:
                     if day.month == month:
-                        day_type = custom_days[day].day_type if day in custom_days else None
+                        cal_entry = custom_days.get(day)
+                        day_type = cal_entry.day_type if cal_entry else None
+                        desc = cal_entry.description if (cal_entry and cal_entry.description) else ''
                         is_weekend = day.weekday() >= 5
                         week_days.append({
                             'date': day,
                             'day_num': day.day,
                             'is_weekend': is_weekend,
                             'day_type': day_type,
+                            'description': desc,
                             'next_type': CalendarService.get_next_day_type(day_type, target_date=day),
                         })
                     else:
@@ -695,6 +702,13 @@ class CalendarService:
                 'weeks': month_weeks
             })
         return months_data
+
+    @staticmethod
+    def get_special_days(year: int) -> list:
+        """
+        Retrieves all company calendar special days for the specified year, ordered chronologically.
+        """
+        return list(CompanyCalendar.objects.filter(date__year=year).order_by('date'))
 
     @staticmethod
     def get_next_day_type(current_type: str | None, target_date: datetime.date | None = None) -> str:
