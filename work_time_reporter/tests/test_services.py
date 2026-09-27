@@ -685,10 +685,84 @@ class TestStructuredLogging:
     def test_calendar_service_logging(self, caplog):
         """Verify calendar day modifications are logged."""
         with caplog.at_level(logging.INFO, logger='work_time_reporter.services'):
-            CalendarService.update_day('2026-09-01', 'SHORT_DAY')
+            CalendarService.update_day('2026-09-01', 'SHORT_DAY', description='Knowledge Day')
             assert "Company calendar updated for date 2026-09-01: day_type=SHORT_DAY" in caplog.text
 
             caplog.clear()
 
             CalendarService.update_day('2026-09-01', 'CLEAR')
             assert "Company calendar customization cleared for date 2026-09-01" in caplog.text
+
+
+@pytest.mark.django_db
+class TestCalendarServiceEnhanced:
+    """Tests for enhanced CalendarService with descriptions and special days."""
+
+    def test_update_day_with_description(self):
+        """Updating a day persists both day_type and description."""
+        result = CalendarService.update_day('2026-08-24', 'HOLIDAY', description='Independence Day of Ukraine')
+        assert result['success'] is True
+
+        entry = CompanyCalendar.objects.get(date=datetime.date(2026, 8, 24))
+        assert entry.day_type == 'HOLIDAY'
+        assert entry.description == 'Independence Day of Ukraine'
+
+    def test_update_day_clear_removes_entry(self):
+        """Updating a day with CLEAR removes the CompanyCalendar record."""
+        CalendarService.update_day('2026-08-24', 'HOLIDAY', description='Independence Day')
+        assert CompanyCalendar.objects.filter(date=datetime.date(2026, 8, 24)).exists()
+
+        result = CalendarService.update_day('2026-08-24', 'CLEAR')
+        assert result['success'] is True
+        assert not CompanyCalendar.objects.filter(date=datetime.date(2026, 8, 24)).exists()
+
+    def test_get_year_calendar_data_includes_descriptions(self):
+        """Calendar grid includes description for customized days."""
+        CalendarService.update_day('2026-01-01', 'HOLIDAY', description="New Year's Day")
+        months_data = CalendarService.get_year_calendar_data(2026)
+
+        # January is first month
+        january = months_data[0]
+        assert january['name'] == 'January'
+
+        # Find Jan 1
+        jan_1 = None
+        for week in january['weeks']:
+            for day in week:
+                if day and day['day_num'] == 1:
+                    jan_1 = day
+                    break
+        assert jan_1 is not None
+        assert jan_1['day_type'] == 'HOLIDAY'
+        assert jan_1['description'] == "New Year's Day"
+
+    def test_get_special_days_ordered(self):
+        """get_special_days returns all customized days for the year ordered chronologically."""
+        CalendarService.update_day('2026-10-14', 'HOLIDAY', description='Defender Day')
+        CalendarService.update_day('2026-01-01', 'HOLIDAY', description="New Year's Day")
+        CalendarService.update_day('2026-05-01', 'SHORT_DAY', description='Pre-holiday')
+
+        special_days = CalendarService.get_special_days(2026)
+        assert len(special_days) == 3
+        dates = [item.date for item in special_days]
+        assert dates == [
+            datetime.date(2026, 1, 1),
+            datetime.date(2026, 5, 1),
+            datetime.date(2026, 10, 14),
+        ]
+        assert special_days[0].description == "New Year's Day"
+        assert special_days[1].description == 'Pre-holiday'
+        assert special_days[2].description == 'Defender Day'
+
+    def test_update_day_invalid_date_format(self):
+        """Updating day with invalid date string returns success=False."""
+        result = CalendarService.update_day('invalid-date', 'HOLIDAY')
+        assert result['success'] is False
+
+    def test_update_day_free_monday_on_tuesday_rejected(self):
+        """FREE_MONDAY cannot be set on a non-Monday."""
+        # 2026-09-01 is Tuesday
+        result = CalendarService.update_day('2026-09-01', 'FREE_MONDAY')
+        assert result['success'] is False
+        assert "Free Monday can only be set on Mondays" in result['message']
+
