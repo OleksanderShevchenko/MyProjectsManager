@@ -44,6 +44,16 @@
             <span role="status" class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800 border border-gray-300">
                 ✏️ {% trans "Draft" %}
             </span>
+            <button type="button"
+                    hx-get="{% url 'work_time_reporter:task_pool_modal' timesheet.id %}"
+                    hx-target="#task-pool-modal-container"
+                    class="inline-flex items-center px-3 py-1 rounded-md text-sm font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 cursor-pointer"
+                    title="{% trans 'Add task from the current year task pool' %}">
+                <svg class="h-4 w-4 mr-1.5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                {% trans "Add Task from Pool" %}
+            </button>
         {% elif timesheet.status == 'SUBMITTED' %}
             <span role="status" class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800 border border-yellow-300">
                 ⏳ {% trans "Submitted for Approval" %}
@@ -142,18 +152,41 @@
                         <tr class="task-row hover:bg-gray-50 transition-colors group">
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 bg-white sticky left-0 z-10 shadow-[1px_0_0_0_#e5e7eb] pl-10">
                                 <div class="flex justify-between items-center group/task">
-                                    <span title="{{ row.task.title }}" class="truncate max-w-[250px] text-gray-600">
-                                        <span class="text-gray-400 mr-1">└</span> {{ row.task.title }}
+                                    <span title="{{ row.task.title }}" class="truncate max-w-[250px] text-gray-600 flex items-center">
+                                        <span class="text-gray-400 mr-1">└</span>
+                                        <span class="truncate">{{ row.task.title }}</span>
+                                        {% if row.is_additional %}
+                                            <span class="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200" title="{% trans 'Manually added from pool' %}">{% trans "Pool" %}</span>
+                                        {% endif %}
+                                        {% if row.is_exhausted %}
+                                            <span class="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200" title="{% trans 'Budget exhausted / Overbudget' %}">⚠️ {% trans "Exhausted" %}</span>
+                                        {% endif %}
                                     </span>
 
-                                    <button type="button"
-                                            class="hide-task-btn text-gray-300 hover:text-red-500 opacity-0 group-hover/task:opacity-100 focus:opacity-100 transition-opacity ml-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded"
-                                            data-task-id="{{ row.task.id }}"
-                                            aria-label="{% blocktrans with title=row.task.title %}Hide task {{ title }} for current week{% endblocktrans %}"
-                                            title="{% trans 'Hide this task for the current week' %}">
-                                        <span class="sr-only">{% blocktrans with title=row.task.title %}Hide task {{ title }}{% endblocktrans %}</span>
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path></svg>
-                                    </button>
+                                    <div class="flex items-center">
+                                        {% if row.is_additional and timesheet.status == 'DRAFT' and row.row_total == 0 %}
+                                        <form hx-post="{% url 'work_time_reporter:remove_task_from_timesheet' timesheet.id %}"
+                                              method="POST"
+                                              class="inline">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="task_id" value="{{ row.task.id }}">
+                                            <button type="submit"
+                                                    class="text-gray-300 hover:text-red-500 opacity-0 group-hover/task:opacity-100 focus:opacity-100 transition-opacity ml-1 p-0.5 rounded cursor-pointer"
+                                                    title="{% trans 'Remove added task from week' %}">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                            </button>
+                                        </form>
+                                        {% endif %}
+
+                                        <button type="button"
+                                                class="hide-task-btn text-gray-300 hover:text-red-500 opacity-0 group-hover/task:opacity-100 focus:opacity-100 transition-opacity ml-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded"
+                                                data-task-id="{{ row.task.id }}"
+                                                aria-label="{% blocktrans with title=row.task.title %}Hide task {{ title }} for current week{% endblocktrans %}"
+                                                title="{% trans 'Hide this task for the current week' %}">
+                                            <span class="sr-only">{% blocktrans with title=row.task.title %}Hide task {{ title }}{% endblocktrans %}</span>
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path></svg>
+                                        </button>
+                                    </div>
                                 </div>
                             </td>
                             <!--- week days columns --->
@@ -194,7 +227,15 @@
                 {% empty %}
                 <tr>
                     <td colspan="9" class="px-6 py-8 text-center text-gray-500">
-                        {% trans "You don't have any assigned tasks for this week." %}
+                        <p class="mb-3">{% trans "You don't have any active tasks in this week's timesheet." %}</p>
+                        {% if timesheet.status == 'DRAFT' %}
+                        <button type="button"
+                                hx-get="{% url 'work_time_reporter:task_pool_modal' timesheet.id %}"
+                                hx-target="#task-pool-modal-container"
+                                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 cursor-pointer">
+                            + {% trans "Add Task from Pool" %}
+                        </button>
+                        {% endif %}
                     </td>
                 </tr>
 
@@ -266,6 +307,9 @@
         </div>
     </div>
 </div>
+
+<div id="task-pool-modal-container"></div>
+
 <script src="{% static 'js/dashboard/totals.js' %}" defer></script>
 <script src="{% static 'js/dashboard/unsaved-changes.js' %}" defer></script>
 <script src="{% static 'js/dashboard/modal.js' %}" defer></script>
