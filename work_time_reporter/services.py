@@ -366,7 +366,22 @@ class TimesheetService:
                 'row_total': row_total
             })
 
-        return grid_data
+        # --- CUSTOM SORTING LOGIC ---
+        # Display commercial projects first, then internal, then administrative, and finally alphabetical by name
+        def get_project_priority(project):
+            priority_map = {
+                Project.ProjectType.COMMERCIAL: 1,
+                Project.ProjectType.INTERNAL: 2,
+                Project.ProjectType.ADMINISTRATIVE: 3,
+            }
+            return priority_map.get(project.project_type, 4)
+
+        sorted_grid_data = dict(sorted(
+            grid_data.items(),
+            key=lambda item: (get_project_priority(item[0]), item[0].name)
+        ))
+
+        return sorted_grid_data
 
     @staticmethod
     def build_mini_dashboard(user, projects) -> list:
