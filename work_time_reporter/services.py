@@ -324,14 +324,29 @@ class TimesheetService:
     def build_weekly_grid(user, timesheet: WeeklyTimesheet, week_dates: list) -> dict:
         """
         Builds the weekly hours and days matrix for assigned tasks grouped by project.
+        Excludes exhausted (spent >= budget) or completed (DONE) tasks by default if they
+        have no logged hours in this week, unless explicitly added via additional_tasks.
         """
         tasks = Task.objects.filter(
             Q(assignees=user) &
-            (Q(project__is_active=True) | Q(time_logs__timesheet=timesheet))
+            (
+                Q(project__is_active=True) |
+                Q(time_logs__timesheet=timesheet) |
+                Q(timesheets_as_additional=timesheet)
+            )
         ).distinct().select_related('project')
 
         logs = TimeLog.objects.filter(timesheet=timesheet)
         log_dict = {(log.task_id, log.date): log for log in logs}
+        tasks_with_logs_ids = {log.task_id for log in logs}
+        additional_task_ids = set(timesheet.additional_tasks.values_list('id', flat=True))
+
+        spent_map = dict(
+            TimeLog.objects.filter(user=user, task__in=tasks)
+            .values('task_id')
+            .annotate(total=Sum('hours'))
+            .values_list('task_id', 'total')
+        )
 
         grid_data = {}
         calendar_events = CompanyCalendar.objects.filter(
@@ -339,6 +354,16 @@ class TimesheetService:
         ).in_bulk(field_name='date')
 
         for task in tasks:
+            spent = float(spent_map.get(task.id, 0.0) or 0.0)
+            is_exhausted = (task.budget_hours > 0 and spent >= task.budget_hours) or (task.status == Task.Status.DONE)
+            has_logs = task.id in tasks_with_logs_ids
+            is_additional = task.id in additional_task_ids
+
+            # By default, exclude tasks that have exhausted their budget or are DONE,
+            # UNLESS they already have hours in this timesheet or were added via pool.
+            if not (has_logs or is_additional or (task.project.is_active and not is_exhausted)):
+                continue
+
             days_data = []
             row_total = 0.0
 
@@ -384,7 +409,10 @@ class TimesheetService:
             grid_data[task.project].append({
                 'task': task,
                 'days': days_data,
-                'row_total': row_total
+                'row_total': row_total,
+                'spent_total': spent,
+                'is_exhausted': is_exhausted,
+                'is_additional': is_additional,
             })
 
         # --- CUSTOM SORTING LOGIC ---
@@ -403,6 +431,113 @@ class TimesheetService:
         ))
 
         return sorted_grid_data
+
+    @staticmethod
+    def get_available_tasks_pool(user, timesheet: WeeklyTimesheet) -> list:
+        """
+        Retrieves the pool of tasks for the timesheet's year assigned to the user,
+        identifying whether each task is currently present in the weekly timesheet.
+        """
+        pool_tasks = Task.objects.filter(
+            Q(assignees=user) &
+            (Q(project__year=timesheet.year) | Q(project__is_active=True))
+        ).distinct().select_related('project').order_by('project__name', 'title')
+
+        logs = TimeLog.objects.filter(timesheet=timesheet)
+        tasks_with_logs_ids = {log.task_id for log in logs}
+        additional_task_ids = set(timesheet.additional_tasks.values_list('id', flat=True))
+
+        spent_map = dict(
+            TimeLog.objects.filter(user=user, task__in=pool_tasks)
+            .values('task_id')
+            .annotate(total=Sum('hours'))
+            .values_list('task_id', 'total')
+        )
+
+        task_pool = []
+        for task in pool_tasks:
+            spent = float(spent_map.get(task.id, 0.0) or 0.0)
+            is_exhausted = (task.budget_hours > 0 and spent >= task.budget_hours) or (task.status == Task.Status.DONE)
+            has_logs = task.id in tasks_with_logs_ids
+            is_additional = task.id in additional_task_ids
+
+            in_timesheet = has_logs or is_additional or (task.project.is_active and not is_exhausted)
+
+            task_pool.append({
+                'task': task,
+                'spent': spent,
+                'budget': task.budget_hours,
+                'is_exhausted': is_exhausted,
+                'is_overbudget': spent > task.budget_hours if task.budget_hours else False,
+                'in_timesheet': in_timesheet,
+                'is_additional': is_additional,
+            })
+
+        return task_pool
+
+    @staticmethod
+    def add_task_to_timesheet(user, timesheet: WeeklyTimesheet, task_id: int) -> dict:
+        """
+        Adds a task from the yearly task pool to the weekly timesheet.
+        """
+        if timesheet.user != user:
+            return {'success': False, 'message': "Permission denied.", 'type': 'error'}
+
+        if timesheet.status != WeeklyTimesheet.Status.DRAFT:
+            return {
+                'success': False,
+                'message': "Cannot add tasks to a submitted or approved timesheet.",
+                'type': 'error'
+            }
+
+        try:
+            task = Task.objects.get(id=task_id)
+        except Task.DoesNotExist:
+            return {'success': False, 'message': "Task not found.", 'type': 'error'}
+
+        if not task.assignees.filter(id=user.id).exists():
+            return {
+                'success': False,
+                'message': "You are not assigned to this task.",
+                'type': 'error'
+            }
+
+        timesheet.additional_tasks.add(task)
+        logger.info(
+            "Task %s (%s) added to timesheet %s by user %s",
+            task.id, task.title, timesheet.id, user.username
+        )
+        return {'success': True, 'message': f"Task '{task.title}' added to timesheet.", 'type': 'success'}
+
+    @staticmethod
+    def remove_task_from_timesheet(user, timesheet: WeeklyTimesheet, task_id: int) -> dict:
+        """
+        Removes a manually added task from the weekly timesheet if no hours have been logged.
+        """
+        if timesheet.user != user:
+            return {'success': False, 'message': "Permission denied.", 'type': 'error'}
+
+        if timesheet.status != WeeklyTimesheet.Status.DRAFT:
+            return {
+                'success': False,
+                'message': "Cannot modify a submitted or approved timesheet.",
+                'type': 'error'
+            }
+
+        has_hours = TimeLog.objects.filter(timesheet=timesheet, task_id=task_id, hours__gt=0).exists()
+        if has_hours:
+            return {
+                'success': False,
+                'message': "Cannot remove task that has logged hours. Clear hours first.",
+                'type': 'warning'
+            }
+
+        timesheet.additional_tasks.remove(task_id)
+        logger.info(
+            "Task %s removed from timesheet %s by user %s",
+            task_id, timesheet.id, user.username
+        )
+        return {'success': True, 'message': "Task removed from timesheet.", 'type': 'success'}
 
     @staticmethod
     def build_mini_dashboard(user, projects) -> list:
