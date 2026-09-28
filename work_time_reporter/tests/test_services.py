@@ -418,6 +418,60 @@ class TestTimesheetServiceExtractedMethods:
         assert mini_dash[0]['name'] == active_project.name
         assert mini_dash[0]['spent'] == 7.5
 
+    def test_build_weekly_grid_project_priority_sorting(
+        self, engineer_user, draft_timesheet, manager_user
+    ):
+        """Verify weekly grid project groups are sorted Commercial -> Internal -> Administrative, then by name."""
+        monday = datetime.date.fromisocalendar(draft_timesheet.year, draft_timesheet.week_number, 1)
+        week_dates = [monday + datetime.timedelta(days=i) for i in range(7)]
+
+        # Create projects in inverse order to test sorting independently of insertion order
+        admin_proj = Project.objects.create(
+            name="Vacation & Sick Leave",
+            project_type=Project.ProjectType.ADMINISTRATIVE,
+            year=draft_timesheet.year,
+            manager=manager_user,
+            is_active=True
+        )
+        task_admin = Task.objects.create(title="Sick Leave", project=admin_proj, budget_hours=10)
+        task_admin.assignees.add(engineer_user)
+
+        internal_proj = Project.objects.create(
+            name="Internal Innovation",
+            project_type=Project.ProjectType.INTERNAL,
+            year=draft_timesheet.year,
+            manager=manager_user,
+            is_active=True
+        )
+        task_internal = Task.objects.create(title="Pet Tool", project=internal_proj, budget_hours=10)
+        task_internal.assignees.add(engineer_user)
+
+        comm_proj_b = Project.objects.create(
+            name="Beta Client Project",
+            project_type=Project.ProjectType.COMMERCIAL,
+            year=draft_timesheet.year,
+            manager=manager_user,
+            is_active=True
+        )
+        task_comm_b = Task.objects.create(title="Beta Deliverable", project=comm_proj_b, budget_hours=10)
+        task_comm_b.assignees.add(engineer_user)
+
+        comm_proj_a = Project.objects.create(
+            name="Alpha Client Project",
+            project_type=Project.ProjectType.COMMERCIAL,
+            year=draft_timesheet.year,
+            manager=manager_user,
+            is_active=True
+        )
+        task_comm_a = Task.objects.create(title="Alpha Deliverable", project=comm_proj_a, budget_hours=10)
+        task_comm_a.assignees.add(engineer_user)
+
+        grid_data = TimesheetService.build_weekly_grid(engineer_user, draft_timesheet, week_dates)
+        project_order = list(grid_data.keys())
+
+        # Expected order: Commercial (Alpha, Beta) -> Internal -> Administrative
+        assert project_order == [comm_proj_a, comm_proj_b, internal_proj, admin_proj]
+
     def test_get_pending_approvals(
         self, manager_user, active_project, active_task, engineer_user, draft_timesheet
     ):
