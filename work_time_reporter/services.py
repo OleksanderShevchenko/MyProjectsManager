@@ -32,7 +32,10 @@ class TimesheetService:
         if action in ['save', 'submit']:
             try:
                 with transaction.atomic():
-                    # Process form data
+                    # 1. Parse and validate form entries
+                    parsed_entries = []
+                    daily_hours_map = {}
+
                     for key, value in post_data.items():
                         if not key.startswith('hours_'):
                             continue
@@ -80,30 +83,46 @@ class TimesheetService:
                                     user.username,
                                     task_id,
                                     date_str,
-                                )
+                                    )
                                 return {
                                     'success': False,
                                     'message': "Hours must be between 0 and 24.",
                                     'type': 'error'
                                 }
 
-                            if hours_val > 0:
-                                TimeLog.objects.update_or_create(
-                                    user=user,
-                                    task=task,
-                                    date=log_date,
-                                    defaults={
-                                        'hours': hours_val,
-                                        'comment': comment_val,
-                                        'timesheet': timesheet
-                                    }
-                                )
-                            elif hours_val == 0:
-                                TimeLog.objects.filter(
-                                    user=user,
-                                    task=task,
-                                    date=log_date
-                                ).delete()
+                            parsed_entries.append((task, log_date, hours_val, comment_val))
+                            daily_hours_map[log_date] = daily_hours_map.get(log_date, 0.0) + hours_val
+                        else:
+                            parsed_entries.append((task, log_date, 0.0, ''))
+
+                    # 2. Validate daily total does not exceed 24 hours
+                    for log_date, day_total in daily_hours_map.items():
+                        if day_total > 24.0:
+                            logger.warning(
+                                "Daily hours limit exceeded (%sh) on %s by user %s",
+                                day_total,
+                                log_date,
+                                user.username,
+                            )
+                            return {
+                                'success': False,
+                                'message': f"Total hours for {log_date} cannot exceed 24 hours (entered: {day_total:g}h).",
+                                'type': 'error'
+                            }
+
+                    # 3. Persist valid entries
+                    for task, log_date, hours_val, comment_val in parsed_entries:
+                        if hours_val > 0:
+                            TimeLog.objects.update_or_create(
+                                user=user,
+                                task=task,
+                                date=log_date,
+                                defaults={
+                                    'hours': hours_val,
+                                    'comment': comment_val,
+                                    'timesheet': timesheet
+                                }
+                            )
                         else:
                             TimeLog.objects.filter(
                                 user=user,
