@@ -9,6 +9,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
+from django.urls import reverse
 from .models import CompanyCalendar, WeeklyTimesheet, Project
 from .services import TimesheetService, CalendarService
 from .exports import ExportService
@@ -266,6 +267,90 @@ def calendar_day_modal(request, year: int, date_str: str):
         'types': CompanyCalendar.DAY_TYPE_CHOICES,
     }
     return render(request, 'work_time_reporter/partials/calendar_day_modal.html', context)
+
+
+@login_required(login_url='work_time_reporter:login')
+def task_pool_modal(request, timesheet_id: int):
+    """
+    Renders an HTMX modal dialog listing tasks available in the current year's task pool
+    that can be added to the current weekly timesheet.
+    """
+    timesheet = get_object_or_404(WeeklyTimesheet, id=timesheet_id)
+    if timesheet.user != request.user and not (request.user.is_superuser or getattr(request.user, 'is_admin_role', False)):
+        return HttpResponseForbidden(_("Access denied."))
+
+    task_pool = TimesheetService.get_available_tasks_pool(request.user, timesheet)
+    context = {
+        'timesheet': timesheet,
+        'task_pool': task_pool,
+    }
+    return render(request, 'work_time_reporter/partials/add_task_modal.html', context)
+
+
+@login_required(login_url='work_time_reporter:login')
+def add_task_to_timesheet(request, timesheet_id: int):
+    """
+    Handles adding a task from the yearly pool to a weekly timesheet via POST.
+    """
+    if request.method != 'POST':
+        return HttpResponseForbidden(_("Method not allowed."))
+
+    timesheet = get_object_or_404(WeeklyTimesheet, id=timesheet_id)
+    task_id = request.POST.get('task_id')
+    if not task_id:
+        return HttpResponse(_("Missing task ID"), status=400)
+
+    try:
+        task_id = int(task_id)
+    except ValueError:
+        return HttpResponse(_("Invalid task ID"), status=400)
+
+    result = TimesheetService.add_task_to_timesheet(request.user, timesheet, task_id)
+    if result['success']:
+        messages.success(request, result['message'])
+    else:
+        messages.error(request, result['message'])
+
+    redirect_url = reverse('work_time_reporter:dashboard_week', kwargs={'year': timesheet.year, 'week': timesheet.week_number})
+    if getattr(request, 'htmx', False):
+        response = HttpResponse(status=204)
+        response['HX-Redirect'] = redirect_url
+        return response
+
+    return redirect(redirect_url)
+
+
+@login_required(login_url='work_time_reporter:login')
+def remove_task_from_timesheet(request, timesheet_id: int):
+    """
+    Handles removing an added task from a weekly timesheet if no hours have been logged.
+    """
+    if request.method != 'POST':
+        return HttpResponseForbidden(_("Method not allowed."))
+
+    timesheet = get_object_or_404(WeeklyTimesheet, id=timesheet_id)
+    task_id = request.POST.get('task_id')
+    if not task_id:
+        return HttpResponse(_("Missing task ID"), status=400)
+
+    try:
+        task_id = int(task_id)
+    except ValueError:
+        return HttpResponse(_("Invalid task ID"), status=400)
+
+    result = TimesheetService.remove_task_from_timesheet(request.user, timesheet, task_id)
+    if result['success']:
+        messages.success(request, result['message'])
+    else:
+        messages.warning(request, result['message'])
+
+    redirect_url = reverse('work_time_reporter:dashboard_week', kwargs={'year': timesheet.year, 'week': timesheet.week_number})
+    if getattr(request, 'htmx', False):
+        response = HttpResponse(status=204)
+        response['HX-Redirect'] = redirect_url
+        return response
+
+    return redirect(redirect_url)
 
 
 @login_required(login_url='work_time_reporter:login')
