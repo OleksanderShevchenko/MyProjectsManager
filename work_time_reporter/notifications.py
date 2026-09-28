@@ -8,6 +8,7 @@ from django.core.mail import EmailMultiAlternatives
 from django.db.models import Sum
 from django.template.loader import render_to_string
 from django.urls import reverse
+from django.utils.formats import date_format
 from django.utils.translation import gettext as _
 
 from .models import WeeklyTimesheet, TimeLog
@@ -104,8 +105,8 @@ class NotificationService:
                 'employee_name': employee_name,
                 'week_number': timesheet.week_number,
                 'year': timesheet.year,
-                'period_start': period_start.strftime('%b %d, %Y'),
-                'period_end': period_end.strftime('%b %d, %Y'),
+                'period_start': date_format(period_start, format='SHORT_DATE_FORMAT', use_l10n=True),
+                'period_end': date_format(period_end, format='SHORT_DATE_FORMAT', use_l10n=True),
                 'total_hours': total_hours,
                 'approvals_url': approvals_url,
             }
@@ -171,8 +172,8 @@ class NotificationService:
             'manager_name': manager_name,
             'week_number': timesheet.week_number,
             'year': timesheet.year,
-            'period_start': period_start.strftime('%b %d, %Y'),
-            'period_end': period_end.strftime('%b %d, %Y'),
+            'period_start': date_format(period_start, format='SHORT_DATE_FORMAT', use_l10n=True),
+            'period_end': date_format(period_end, format='SHORT_DATE_FORMAT', use_l10n=True),
             'total_hours': total_hours,
             'dashboard_url': dashboard_url,
         }
@@ -245,8 +246,8 @@ class NotificationService:
             'manager_name': manager_name,
             'week_number': timesheet.week_number,
             'year': timesheet.year,
-            'period_start': period_start.strftime('%b %d, %Y'),
-            'period_end': period_end.strftime('%b %d, %Y'),
+            'period_start': date_format(period_start, format='SHORT_DATE_FORMAT', use_l10n=True),
+            'period_end': date_format(period_end, format='SHORT_DATE_FORMAT', use_l10n=True),
             'total_hours': total_hours,
             'rejection_comment': comment,
             'dashboard_url': dashboard_url,
