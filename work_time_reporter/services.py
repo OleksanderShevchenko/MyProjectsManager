@@ -1,11 +1,13 @@
 import calendar
 import datetime
 import logging
+from decimal import Decimal
 from typing import Tuple
 
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Sum, Min, Q, Max
+from django.db.models.functions import Coalesce
 from django.urls import reverse
 from django.utils import timezone
 from .models import Task, TimeLog, WeeklyTimesheet, Project, CompanyCalendar
@@ -437,10 +439,9 @@ class TimesheetService:
         pending_timesheets = WeeklyTimesheet.objects.filter(
             status=WeeklyTimesheet.Status.SUBMITTED,
             user__in=managed_users
+        ).select_related('user').annotate(
+            total_hours=Coalesce(Sum('time_logs__hours'), Decimal('0.0'))
         ).order_by('user__username', '-year', '-week_number')
-
-        for ts in pending_timesheets:
-            ts.total_hours = TimeLog.objects.filter(timesheet=ts).aggregate(Sum('hours'))['hours__sum'] or 0
 
         return pending_timesheets
 
