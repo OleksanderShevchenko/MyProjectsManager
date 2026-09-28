@@ -1,6 +1,8 @@
 import datetime
 import logging
 import os
+import sys
+import threading
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -68,7 +70,51 @@ class NotificationService:
         )
 
     @classmethod
-    def notify_timesheet_submitted(cls, timesheet: WeeklyTimesheet, base_url: str | None = None) -> int:
+    def send_email_message(
+        cls,
+        email: EmailMultiAlternatives,
+        description: str = '',
+        async_send: bool | None = None
+    ) -> bool:
+        """
+        Dispatches an email message. In asynchronous mode (default in runtime), dispatches
+        via a background daemon Thread so HTTP response latency is not blocked by SMTP round-trips.
+        In test environments or when explicitly disabled, sends synchronously.
+        """
+        if async_send is None:
+            async_send = (
+                getattr(settings, 'EMAIL_ASYNC', True)
+                and not getattr(settings, 'TESTING', False)
+                and 'pytest' not in sys.modules
+            )
+
+        def _do_send() -> bool:
+            try:
+                email.send(fail_silently=False)
+                logger.info("Email notification successfully sent: %s", description)
+                return True
+            except Exception as e:
+                logger.error("Failed to send email notification (%s): %s", description, str(e), exc_info=True)
+                return False
+
+        if async_send:
+            thread = threading.Thread(
+                target=_do_send,
+                daemon=True,
+                name=f"EmailDispatch-{datetime.datetime.now().timestamp()}"
+            )
+            thread.start()
+            return True
+        else:
+            return _do_send()
+
+    @classmethod
+    def notify_timesheet_submitted(
+        cls,
+        timesheet: WeeklyTimesheet,
+        base_url: str | None = None,
+        async_send: bool | None = None,
+    ) -> int:
         """
         Dispatches notification emails to project managers when an employee submits a timesheet.
         Returns the number of successfully sent emails.
@@ -122,17 +168,12 @@ class NotificationService:
                     to=[manager.email],
                 )
                 email.attach_alternative(html_content, "text/html")
-                email.send(fail_silently=False)
-                sent_count += 1
-                logger.info(
-                    "Timesheet submission notification sent to manager %s (%s) for timesheet %s",
-                    manager.username,
-                    manager.email,
-                    timesheet.id,
-                )
+                desc = f"Timesheet submission notification to manager {manager.username} ({manager.email}) for timesheet {timesheet.id}"
+                if cls.send_email_message(email, description=desc, async_send=async_send):
+                    sent_count += 1
             except Exception as e:
                 logger.error(
-                    "Failed to send timesheet submission email to manager %s (%s): %s",
+                    "Failed to prepare timesheet submission email to manager %s (%s): %s",
                     manager.username,
                     manager.email,
                     str(e),
@@ -142,7 +183,13 @@ class NotificationService:
         return sent_count
 
     @classmethod
-    def notify_timesheet_approved(cls, timesheet: WeeklyTimesheet, reviewer=None, base_url: str | None = None) -> bool:
+    def notify_timesheet_approved(
+        cls,
+        timesheet: WeeklyTimesheet,
+        reviewer=None,
+        base_url: str | None = None,
+        async_send: bool | None = None,
+    ) -> bool:
         """
         Dispatches notification email to the employee when their timesheet is approved.
         Returns True if sent successfully, False otherwise.
@@ -191,17 +238,11 @@ class NotificationService:
                 to=[employee.email],
             )
             email.attach_alternative(html_content, "text/html")
-            email.send(fail_silently=False)
-            logger.info(
-                "Timesheet approval notification sent to %s (%s) for timesheet %s",
-                employee.username,
-                employee.email,
-                timesheet.id,
-            )
-            return True
+            desc = f"Timesheet approval notification to {employee.username} ({employee.email}) for timesheet {timesheet.id}"
+            return cls.send_email_message(email, description=desc, async_send=async_send)
         except Exception as e:
             logger.error(
-                "Failed to send timesheet approval email to %s (%s): %s",
+                "Failed to prepare timesheet approval email to %s (%s): %s",
                 employee.username,
                 employee.email,
                 str(e),
@@ -216,6 +257,7 @@ class NotificationService:
         reviewer=None,
         rejection_comment: str = '',
         base_url: str | None = None,
+        async_send: bool | None = None,
     ) -> bool:
         """
         Dispatches notification email to the employee when their timesheet is returned to draft for revision.
@@ -266,17 +308,11 @@ class NotificationService:
                 to=[employee.email],
             )
             email.attach_alternative(html_content, "text/html")
-            email.send(fail_silently=False)
-            logger.info(
-                "Timesheet returned-to-draft notification sent to %s (%s) for timesheet %s",
-                employee.username,
-                employee.email,
-                timesheet.id,
-            )
-            return True
+            desc = f"Timesheet returned-to-draft notification to {employee.username} ({employee.email}) for timesheet {timesheet.id}"
+            return cls.send_email_message(email, description=desc, async_send=async_send)
         except Exception as e:
             logger.error(
-                "Failed to send timesheet returned-to-draft email to %s (%s): %s",
+                "Failed to prepare timesheet returned-to-draft email to %s (%s): %s",
                 employee.username,
                 employee.email,
                 str(e),
