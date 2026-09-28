@@ -862,3 +862,170 @@ class TestCalendarServiceEnhanced:
         assert result['success'] is False
         assert "Free Monday can only be set on Mondays" in result['message']
 
+
+@pytest.mark.django_db
+class TestTaskPoolAndExhaustion:
+    def test_exhausted_task_excluded_by_default(
+        self, engineer_user, active_project, draft_timesheet
+    ):
+        """Verify task with spent hours >= budget is excluded from weekly grid by default."""
+        task = Task.objects.create(
+            title="Exhausted Task",
+            project=active_project,
+            budget_hours=10
+        )
+        task.assignees.add(engineer_user)
+
+        # Log 10 hours in an earlier week
+        earlier_ts = WeeklyTimesheet.objects.create(
+            user=engineer_user,
+            year=draft_timesheet.year,
+            week_number=draft_timesheet.week_number - 1,
+            status=WeeklyTimesheet.Status.APPROVED
+        )
+        TimeLog.objects.create(
+            user=engineer_user,
+            task=task,
+            timesheet=earlier_ts,
+            date=datetime.date(2026, 8, 17),
+            hours=10.0
+        )
+
+        monday = datetime.date.fromisocalendar(draft_timesheet.year, draft_timesheet.week_number, 1)
+        week_dates = [monday + datetime.timedelta(days=i) for i in range(7)]
+
+        grid = TimesheetService.build_weekly_grid(engineer_user, draft_timesheet, week_dates)
+        tasks_in_grid = [row['task'] for rows in grid.values() for row in rows]
+        assert task not in tasks_in_grid
+
+    def test_exhausted_task_included_when_added_as_additional(
+        self, engineer_user, active_project, draft_timesheet
+    ):
+        """Verify exhausted task is included in weekly grid when explicitly added via additional_tasks."""
+        task = Task.objects.create(
+            title="Exhausted Task Added",
+            project=active_project,
+            budget_hours=10
+        )
+        task.assignees.add(engineer_user)
+
+        earlier_ts = WeeklyTimesheet.objects.create(
+            user=engineer_user,
+            year=draft_timesheet.year,
+            week_number=draft_timesheet.week_number - 1,
+            status=WeeklyTimesheet.Status.APPROVED
+        )
+        TimeLog.objects.create(
+            user=engineer_user,
+            task=task,
+            timesheet=earlier_ts,
+            date=datetime.date(2026, 8, 17),
+            hours=10.0
+        )
+
+        # Add to current timesheet's additional_tasks
+        TimesheetService.add_task_to_timesheet(engineer_user, draft_timesheet, task.id)
+
+        monday = datetime.date.fromisocalendar(draft_timesheet.year, draft_timesheet.week_number, 1)
+        week_dates = [monday + datetime.timedelta(days=i) for i in range(7)]
+
+        grid = TimesheetService.build_weekly_grid(engineer_user, draft_timesheet, week_dates)
+        tasks_in_grid = [row['task'] for rows in grid.values() for row in rows]
+        assert task in tasks_in_grid
+
+    def test_done_task_excluded_by_default_unless_in_timesheet(
+        self, engineer_user, active_project, draft_timesheet
+    ):
+        """Verify task with status DONE is excluded by default unless added."""
+        done_task = Task.objects.create(
+            title="Finished Deliverable",
+            project=active_project,
+            budget_hours=20,
+            status=Task.Status.DONE
+        )
+        done_task.assignees.add(engineer_user)
+
+        monday = datetime.date.fromisocalendar(draft_timesheet.year, draft_timesheet.week_number, 1)
+        week_dates = [monday + datetime.timedelta(days=i) for i in range(7)]
+
+        grid = TimesheetService.build_weekly_grid(engineer_user, draft_timesheet, week_dates)
+        tasks_in_grid = [row['task'] for rows in grid.values() for row in rows]
+        assert done_task not in tasks_in_grid
+
+        # Add to timesheet
+        draft_timesheet.additional_tasks.add(done_task)
+        grid_updated = TimesheetService.build_weekly_grid(engineer_user, draft_timesheet, week_dates)
+        updated_tasks = [row['task'] for rows in grid_updated.values() for row in rows]
+        assert done_task in updated_tasks
+
+    def test_overbudget_hours_saving_is_allowed(
+        self, engineer_user, active_project, draft_timesheet
+    ):
+        """Verify logging hours exceeding task budget succeeds to allow manager approval."""
+        task = Task.objects.create(
+            title="Overbudget Candidate",
+            project=active_project,
+            budget_hours=8
+        )
+        task.assignees.add(engineer_user)
+        draft_timesheet.additional_tasks.add(task)
+
+        # Log 12 hours (> 8h budget)
+        post_data = {
+            'action': 'save',
+            f'hours_{task.id}_2026-08-24': '6.0',
+            f'hours_{task.id}_2026-08-25': '6.0',
+        }
+        result = TimesheetService.save_timesheet_data(engineer_user, draft_timesheet, post_data)
+        assert result['success'] is True
+        logs = TimeLog.objects.filter(timesheet=draft_timesheet, task=task)
+        assert sum(float(l.hours) for l in logs) == 12.0
+
+    def test_get_available_tasks_pool(
+        self, engineer_user, active_project, draft_timesheet
+    ):
+        """Verify get_available_tasks_pool returns current year pool with status flags."""
+        t1 = Task.objects.create(title="Normal Task", project=active_project, budget_hours=40)
+        t1.assignees.add(engineer_user)
+
+        t2 = Task.objects.create(title="Exhausted Task", project=active_project, budget_hours=5)
+        t2.assignees.add(engineer_user)
+        TimeLog.objects.create(
+            user=engineer_user, task=t2, timesheet=draft_timesheet,
+            date=datetime.date(2026, 8, 24), hours=5.0
+        )
+
+        pool = TimesheetService.get_available_tasks_pool(engineer_user, draft_timesheet)
+        pool_tasks = {item['task'].id: item for item in pool}
+
+        assert t1.id in pool_tasks
+        assert pool_tasks[t1.id]['in_timesheet'] is True
+        assert pool_tasks[t1.id]['is_exhausted'] is False
+
+        assert t2.id in pool_tasks
+        assert pool_tasks[t2.id]['is_exhausted'] is True
+
+    def test_remove_task_from_timesheet(
+        self, engineer_user, active_project, draft_timesheet
+    ):
+        """Verify remove_task_from_timesheet succeeds when no hours are logged, but blocks when hours exist."""
+        task = Task.objects.create(title="Removable Task", project=active_project, budget_hours=10)
+        task.assignees.add(engineer_user)
+        draft_timesheet.additional_tasks.add(task)
+
+        # Without hours -> removes successfully
+        res = TimesheetService.remove_task_from_timesheet(engineer_user, draft_timesheet, task.id)
+        assert res['success'] is True
+        assert not draft_timesheet.additional_tasks.filter(id=task.id).exists()
+
+        # Add again and log hours
+        draft_timesheet.additional_tasks.add(task)
+        TimeLog.objects.create(
+            user=engineer_user, task=task, timesheet=draft_timesheet,
+            date=datetime.date(2026, 8, 24), hours=2.0
+        )
+        res_blocked = TimesheetService.remove_task_from_timesheet(engineer_user, draft_timesheet, task.id)
+        assert res_blocked['success'] is False
+        assert "logged hours" in res_blocked['message']
+
+
