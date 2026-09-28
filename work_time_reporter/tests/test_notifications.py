@@ -1,10 +1,12 @@
 import datetime
+import time
 from unittest.mock import patch
 
 import pytest
 from django.contrib.auth import get_user_model
 from django.core import mail
-from django.utils import timezone
+from django.core.mail import EmailMultiAlternatives
+from django.utils import timezone, translation
 
 from work_time_reporter.models import Project, TimeLog, WeeklyTimesheet
 from work_time_reporter.notifications import NotificationService
@@ -237,3 +239,41 @@ class TestTimesheetServiceNotificationIntegration:
         assert len(mail.outbox) == 1
         assert engineer_user.email in mail.outbox[0].to
         assert "Missing description on task" in mail.outbox[0].body
+
+    def test_notification_dates_localized_format(self, engineer_user, manager_user, active_project, timesheet_with_hours):
+        """Notification dates should respect active locale format."""
+        from django.utils.formats import date_format
+        mail.outbox.clear()
+        with translation.override("uk"):
+            NotificationService.notify_timesheet_submitted(timesheet_with_hours, async_send=False)
+
+        assert len(mail.outbox) == 1
+        monday, sunday = NotificationService.get_timesheet_period_dates(timesheet_with_hours)
+        with translation.override("uk"):
+            expected_start = date_format(monday, format="SHORT_DATE_FORMAT", use_l10n=True)
+            expected_end = date_format(sunday, format="SHORT_DATE_FORMAT", use_l10n=True)
+
+        body = mail.outbox[0].body
+        assert expected_start in body
+        assert expected_end in body
+
+    def test_notification_async_send_thread(self):
+        """send_email_message with async_send=True dispatches in a background thread."""
+        mail.outbox.clear()
+        email = EmailMultiAlternatives(
+            subject="Async Test",
+            body="Async body",
+            from_email="noreply@example.com",
+            to=["recipient@example.com"],
+        )
+        success = NotificationService.send_email_message(email, description="Unit test async", async_send=True)
+        assert success is True
+
+        # Wait briefly for thread execution
+        for _ in range(20):
+            if len(mail.outbox) == 1:
+                break
+            time.sleep(0.05)
+
+        assert len(mail.outbox) == 1
+        assert mail.outbox[0].subject == "Async Test"
