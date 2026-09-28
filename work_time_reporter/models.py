@@ -136,6 +136,12 @@ class WeeklyTimesheet(TimestampMixin, models.Model):
         verbose_name=_("Approved By")
     )
     rejection_comment = models.TextField(blank=True, default='', verbose_name=_("Rejection Comment"))
+    additional_tasks = models.ManyToManyField(
+        'Task',
+        blank=True,
+        related_name='timesheets_as_additional',
+        verbose_name=_("Additional Tasks")
+    )
 
     class Meta:
         # У одного користувача може бути лише один звіт на конкретний тиждень року
