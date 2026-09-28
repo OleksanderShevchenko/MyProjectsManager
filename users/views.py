@@ -1,7 +1,9 @@
+from decimal import Decimal
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum
+from django.db.models.functions import Coalesce
 from django.shortcuts import render, redirect
 from django.utils.translation import gettext as _
 
@@ -53,10 +55,9 @@ def profile_view(request):
     managed_projects = user.managed_projects.filter(is_active=True).distinct()
 
     # Timesheet History
-    history_qs = user_timesheets.select_related('approved_by').order_by('-year', '-week_number')
-    for ts in history_qs:
-        ts_total = TimeLog.objects.filter(timesheet=ts).aggregate(Sum('hours'))['hours__sum'] or 0
-        ts.total_hours = float(ts_total)
+    history_qs = user_timesheets.select_related('approved_by').annotate(
+        total_hours=Coalesce(Sum('time_logs__hours'), Decimal('0.0'))
+    ).order_by('-year', '-week_number')
 
     available_years = list(user_timesheets.values_list('year', flat=True).distinct().order_by('-year'))
 
@@ -121,7 +122,9 @@ def history_view(request):
     user_timesheets = WeeklyTimesheet.objects.filter(user=request.user)
     available_years = list(user_timesheets.values_list('year', flat=True).distinct().order_by('-year'))
 
-    qs = user_timesheets.select_related('approved_by')
+    qs = user_timesheets.select_related('approved_by').annotate(
+        total_hours=Coalesce(Sum('time_logs__hours'), Decimal('0.0'))
+    )
 
     year = request.GET.get('year', '').strip()
     if year and year.isdigit():
@@ -136,9 +139,6 @@ def history_view(request):
         qs = qs.filter(status=status)
 
     qs = qs.order_by('-year', '-week_number')
-    for ts in qs:
-        ts_total = TimeLog.objects.filter(timesheet=ts).aggregate(Sum('hours'))['hours__sum'] or 0
-        ts.total_hours = float(ts_total)
 
     context = {
         'timesheets': qs,
