@@ -8,6 +8,8 @@ from work_time_reporter.models import (
     CompanyCalendar,
     TimeLog,
     WeeklyTimesheet,
+    Project,
+    Task,
 )
 
 User = get_user_model()
@@ -437,4 +439,86 @@ class TestCalendarDayModalView:
         url = reverse('work_time_reporter:calendar_day_modal', kwargs={'year': 2026, 'date_str': 'not-a-date'})
         response = client.get(url, HTTP_HX_REQUEST='true')
         assert response.status_code == 400
+
+
+@pytest.mark.django_db
+class TestTaskPoolViews:
+    def test_task_pool_modal_renders_tasks(
+        self, client, engineer_user, draft_timesheet, active_project
+    ):
+        """Task pool modal returns 200 with available pool tasks for the timesheet owner."""
+        task_active = Task.objects.create(
+            title="Pool Candidate Active",
+            project=active_project,
+            budget_hours=20
+        )
+        task_active.assignees.add(engineer_user)
+
+        task_done = Task.objects.create(
+            title="Pool Candidate Done",
+            project=active_project,
+            budget_hours=10,
+            status=Task.Status.DONE
+        )
+        task_done.assignees.add(engineer_user)
+
+        client.force_login(engineer_user)
+        url = reverse('work_time_reporter:task_pool_modal', kwargs={'timesheet_id': draft_timesheet.id})
+        response = client.get(url, HTTP_HX_REQUEST='true')
+
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        assert 'Current Year Task Pool' in content
+        assert 'Pool Candidate Active' in content
+        assert 'In Timesheet' in content
+        assert 'Pool Candidate Done' in content
+        assert 'Add to Week' in content
+
+    def test_task_pool_modal_forbidden_for_other_user(
+        self, client, manager_user, draft_timesheet
+    ):
+        """Non-owner non-admin user cannot access another user's timesheet task pool."""
+        client.force_login(manager_user)
+        url = reverse('work_time_reporter:task_pool_modal', kwargs={'timesheet_id': draft_timesheet.id})
+        response = client.get(url, HTTP_HX_REQUEST='true')
+        assert response.status_code == 403
+
+    def test_add_task_to_timesheet_htmx_post(
+        self, client, engineer_user, draft_timesheet, active_project
+    ):
+        """Adding a task to timesheet via HTMX POST returns 204 with HX-Redirect."""
+        task = Task.objects.create(
+            title="Task To Add",
+            project=active_project,
+            budget_hours=15
+        )
+        task.assignees.add(engineer_user)
+
+        client.force_login(engineer_user)
+        url = reverse('work_time_reporter:add_task_to_timesheet', kwargs={'timesheet_id': draft_timesheet.id})
+        response = client.post(url, {'task_id': task.id}, HTTP_HX_REQUEST='true')
+
+        assert response.status_code == 204
+        assert 'HX-Redirect' in response.headers
+        assert draft_timesheet.additional_tasks.filter(id=task.id).exists()
+
+    def test_remove_task_from_timesheet_htmx_post(
+        self, client, engineer_user, draft_timesheet, active_project
+    ):
+        """Removing an added task with 0 hours returns 204 and removes task from additional_tasks."""
+        task = Task.objects.create(
+            title="Task To Remove",
+            project=active_project,
+            budget_hours=15
+        )
+        task.assignees.add(engineer_user)
+        draft_timesheet.additional_tasks.add(task)
+
+        client.force_login(engineer_user)
+        url = reverse('work_time_reporter:remove_task_from_timesheet', kwargs={'timesheet_id': draft_timesheet.id})
+        response = client.post(url, {'task_id': task.id}, HTTP_HX_REQUEST='true')
+
+        assert response.status_code == 204
+        assert not draft_timesheet.additional_tasks.filter(id=task.id).exists()
+
 
