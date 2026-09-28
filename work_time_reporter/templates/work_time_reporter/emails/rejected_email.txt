@@ -1,0 +1,19 @@
+{% load i18n %}{% blocktrans with name=employee_name %}Hello {{ name }},{% endblocktrans %}
+
+{% blocktrans with week=week_number year=year manager=manager_name %}Your timesheet for Week {{ week }}, {{ year }} has been returned to draft by {{ manager }} for revision.{% endblocktrans %}
+
+{% if rejection_comment %}
+{% trans "Feedback from Reviewer" %}:
+{{ rejection_comment }}
+{% endif %}
+
+{% trans "Summary" %}:
+- {% trans "Period" %}: {{ period_start }} – {{ period_end }} (Week {{ week_number }})
+- {% trans "Total Hours" %}: {{ total_hours }} h
+- {% trans "Returned By" %}: {{ manager_name }}
+
+{% trans "You can edit and resubmit your timesheet here" %}:
+{{ dashboard_url }}
+
+---
+{% trans "This is an automated notification from MyProjectsManager. Please do not reply directly to this email." %}

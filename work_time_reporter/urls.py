@@ -13,10 +13,14 @@ urlpatterns = [
     path('approvals/', views.team_approvals, name='team_approvals'),
     # root to view details of week report for approval (in read-only mode)
     path('timesheet/<int:timesheet_id>/', views.timesheet_detail, name='timesheet_detail'),
+    path('timesheet/<int:timesheet_id>/export/pdf/', views.export_weekly_pdf, name='export_weekly_pdf'),
 
     # year dashboard
     path('yearly/', views.yearly_dashboard, name='yearly_dashboard'),
     path('yearly/<int:year>/', views.yearly_dashboard, name='yearly_dashboard_year'),
+    path('yearly/<int:year>/export/excel/', views.export_yearly_excel, name='export_yearly_excel'),
+    path('yearly/export/excel/', views.export_yearly_excel, name='export_yearly_excel_current'),
+
 
     # When the user enters the main page of the application, we call views.dashboard - it redirect us to current week
     path('', views.dashboard, name='dashboard'),
@@ -29,4 +33,5 @@ urlpatterns = [
     # url for interactive CompanyCalendar dashboard
     path('settings/calendar/<int:year>/', views.calendar_settings, name='calendar_settings'),
     path('settings/calendar/', views.calendar_settings, name='calendar_settings_current'),
+    path('settings/calendar/<int:year>/modal/<str:date_str>/', views.calendar_day_modal, name='calendar_day_modal'),
 ]

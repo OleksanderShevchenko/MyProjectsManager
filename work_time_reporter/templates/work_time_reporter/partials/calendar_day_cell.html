@@ -1,0 +1,31 @@
+{% load i18n %}
+<button
+    id="day-cell-{{ day.date|date:'Y-m-d' }}"
+    type="button"
+    {% if is_admin %}
+    hx-get="{% url 'work_time_reporter:calendar_day_modal' year=year date_str=day.date|date:'Y-m-d' %}"
+    hx-target="#calendar-modal-container"
+    hx-swap="innerHTML"
+    {% else %}
+    disabled
+    {% endif %}
+    class="relative w-8 h-8 rounded flex items-center justify-center border text-xs font-semibold transition-all
+        {% if day.day_type == 'HOLIDAY' %} bg-red-100 text-red-800 border-red-300 font-bold shadow-xs
+        {% elif day.day_type == 'SHORT_DAY' %} bg-orange-100 text-orange-800 border-orange-300 font-bold shadow-xs
+        {% elif day.day_type == 'FREE_MONDAY' %} bg-purple-100 text-purple-800 border-purple-300 font-bold shadow-xs
+        {% elif day.is_weekend %} bg-gray-100 text-gray-500 border-transparent
+        {% else %} bg-white text-gray-700 border-transparent {% endif %}
+        {% if is_admin %} hover:ring-2 hover:ring-indigo-500 hover:z-10 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 {% else %} cursor-default {% endif %}"
+    aria-label="{{ day.date|date:'l, d F Y' }}{% if day.day_type %}, {{ day.day_type }}{% endif %}{% if day.description %}: {{ day.description }}{% endif %}{% if is_admin %}, {% trans 'click to edit' %}{% endif %}"
+    title="{{ day.date|date:'Y-m-d' }}{% if day.day_type %}: {{ day.day_type }}{% endif %}{% if day.description %} - {{ day.description }}{% endif %}">
+    {{ day.day_num }}
+    {% if day.description %}
+    <span class="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-indigo-600 ring-1 ring-white" title="{{ day.description }}"></span>
+    {% endif %}
+</button>
+{% if request.method == 'POST' and special_days is not None %}
+<div id="special-days-table-container" hx-swap-oob="outerHTML">
+    {% include "work_time_reporter/partials/special_days_table.html" with special_days=special_days is_admin=is_admin year=year %}
+</div>
+<div id="calendar-modal-container" hx-swap-oob="innerHTML"></div>
+{% endif %}
