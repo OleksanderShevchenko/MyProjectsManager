@@ -14,6 +14,9 @@ urlpatterns = [
     # root to view details of week report for approval (in read-only mode)
     path('timesheet/<int:timesheet_id>/', views.timesheet_detail, name='timesheet_detail'),
     path('timesheet/<int:timesheet_id>/export/pdf/', views.export_weekly_pdf, name='export_weekly_pdf'),
+    path('timesheet/<int:timesheet_id>/task-pool/', views.task_pool_modal, name='task_pool_modal'),
+    path('timesheet/<int:timesheet_id>/add-task/', views.add_task_to_timesheet, name='add_task_to_timesheet'),
+    path('timesheet/<int:timesheet_id>/remove-task/', views.remove_task_from_timesheet, name='remove_task_from_timesheet'),
 
     # year dashboard
     path('yearly/', views.yearly_dashboard, name='yearly_dashboard'),
