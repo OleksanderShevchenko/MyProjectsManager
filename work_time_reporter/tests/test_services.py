@@ -191,6 +191,48 @@ class TestTimesheetServiceSaveAndSubmit:
         assert result['type'] == 'error'
         assert "Hours must be between 0 and 24" in result['message']
 
+    def test_save_daily_total_exceeding_24_hours_rejected(
+        self, engineer_user, active_project, active_task, draft_timesheet
+    ):
+        """Verify that logging hours across multiple tasks on the same day cannot exceed 24 hours."""
+        task2 = Task.objects.create(
+            title="Second Task",
+            project=active_project,
+            budget_hours=40
+        )
+        task2.assignees.add(engineer_user)
+
+        post_data = {
+            'action': 'save',
+            f'hours_{active_task.id}_2026-08-24': '14.0',
+            f'hours_{task2.id}_2026-08-24': '12.0',
+        }
+        result = TimesheetService.save_timesheet_data(engineer_user, draft_timesheet, post_data)
+        assert result['success'] is False
+        assert result['type'] == 'error'
+        assert "cannot exceed 24 hours" in result['message']
+        assert not TimeLog.objects.filter(timesheet=draft_timesheet).exists()
+
+    def test_save_daily_total_within_24_hours_accepted(
+        self, engineer_user, active_project, active_task, draft_timesheet
+    ):
+        """Verify that logging hours across multiple tasks within 24 hours total succeeds."""
+        task2 = Task.objects.create(
+            title="Second Task Valid",
+            project=active_project,
+            budget_hours=40
+        )
+        task2.assignees.add(engineer_user)
+
+        post_data = {
+            'action': 'save',
+            f'hours_{active_task.id}_2026-08-24': '10.0',
+            f'hours_{task2.id}_2026-08-24': '8.0',
+        }
+        result = TimesheetService.save_timesheet_data(engineer_user, draft_timesheet, post_data)
+        assert result['success'] is True
+        assert TimeLog.objects.filter(timesheet=draft_timesheet, date='2026-08-24').count() == 2
+
     def test_save_negative_hours_rejected(
         self, engineer_user, active_task, draft_timesheet
     ):
