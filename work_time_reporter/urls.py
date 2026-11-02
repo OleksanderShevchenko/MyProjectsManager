@@ -5,6 +5,9 @@ from . import views
 app_name = 'work_time_reporter'
 
 urlpatterns = [
+    # Health check for container monitoring
+    path('health/', views.health_check, name='health_check'),
+
     # urls for a user lon-in / log-out
     path('login/', auth_views.LoginView.as_view(template_name='work_time_reporter/login.html'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(next_page='work_time_reporter:login'), name='logout'),
