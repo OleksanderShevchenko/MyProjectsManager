@@ -1,0 +1,42 @@
+# Git
+.git
+.gitignore
+
+# Python & testing cache
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache
+.coverage
+htmlcov
+.ruff_cache
+
+# Virtual environments
+.venv
+venv
+env
+ENV
+
+# IDEs & OS files
+.idea
+.vscode
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Project secrets & local configs
+.env
+local_settings.py
+
+# Local logs & backups
+logs/
+*.log
+db_backups/
+*.sql
+*.dump
+
+# Documentation and design assets
+docs/
+img.png
