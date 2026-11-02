@@ -979,7 +979,7 @@ class TestTaskPoolAndExhaustion:
         result = TimesheetService.save_timesheet_data(engineer_user, draft_timesheet, post_data)
         assert result['success'] is True
         logs = TimeLog.objects.filter(timesheet=draft_timesheet, task=task)
-        assert sum(float(l.hours) for l in logs) == 12.0
+        assert sum(float(entry.hours) for entry in logs) == 12.0
 
     def test_get_available_tasks_pool(
         self, engineer_user, active_project, draft_timesheet
