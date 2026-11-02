@@ -5,6 +5,7 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse, HttpResponseForbidden
+from django.db import connection
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from django.utils.translation import gettext as _
@@ -14,6 +15,20 @@ from .models import CompanyCalendar, WeeklyTimesheet, Project
 from .services import TimesheetService, CalendarService
 from .exports import ExportService
 from .decorators import manager_required
+
+
+def health_check(request):
+    """
+    Health check endpoint for Docker, load balancers, and monitoring.
+    Returns 200 with status: healthy if the database is accessible.
+    Returns 503 with status: unhealthy if the database connection fails.
+    """
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1;")
+        return JsonResponse({'status': 'healthy', 'database': 'connected'})
+    except Exception as e:
+        return JsonResponse({'status': 'unhealthy', 'error': str(e)}, status=503)
 
 
 @login_required(login_url='work_time_reporter:login')
