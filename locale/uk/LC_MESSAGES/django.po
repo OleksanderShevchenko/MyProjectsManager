@@ -1,0 +1,883 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: MyProjectsManager 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-15 12:00+0300\n"
+"PO-Revision-Date: 2026-09-15 12:00+0300\n"
+"Last-Translator: Antigravity <antigravity@local>\n"
+"Language-Team: Ukrainian\n"
+"Language: uk\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=4; plural=(n % 1 == 0 && n % 10 == 1 && n % 100 != 11 ? 0 : n % 1 == 0 && n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 1 : n % 1 == 0 && (n % 10 ==0 || (n % 10 >=5 && n % 10 <=9) || (n % 100 >=11 && n % 100 <=14 )) ? 2: 3);\n"
+
+msgid "(Excluding Administrative)"
+msgstr "(Без урахування адміністративних)"
+
+msgid "Access denied. You do not have permission to export this timesheet."
+msgstr "Доступ заборонено. У вас немає дозволу на експорт цього табеля."
+
+msgid "Access denied. You do not have permission to export this user's report."
+msgstr "Доступ заборонено. У вас немає дозволу на експорт звіту цього користувача."
+
+msgid "Actions"
+msgstr "Дії"
+
+msgid "Active"
+msgstr "Активний"
+
+msgid "Administrative"
+msgstr "Адміністративний"
+
+msgid "Administrative time like sick leave vacation or traveling"
+msgstr "Адміністративний час (лікарняні, відпустки тощо)"
+
+msgid "Administrator"
+msgstr "Адміністратор"
+
+msgid "All Statuses"
+msgstr "Всі статуси"
+
+msgid "All Years"
+msgstr "Всі роки"
+
+msgid "All caught up!"
+msgstr "Все перевірено!"
+
+msgid "Approve"
+msgstr "Затвердити"
+
+msgid "Approve Timesheet"
+msgstr "Затвердити табель"
+
+msgid "Approved"
+msgstr "Затверджено"
+
+msgid "Approved Timesheets"
+msgstr "Затверджені табелі"
+
+msgid "Approved by"
+msgstr "Затвердив"
+
+msgid "April"
+msgstr "Квітень"
+
+msgid "Are you sure you want to remove this special day?"
+msgstr "Ви впевнені, що хочете видалити цей спеціальний день?"
+
+msgid "Assigned Projects"
+msgstr "Призначені проєкти"
+
+msgid "August"
+msgstr "Серпень"
+
+msgid "Back to Approvals"
+msgstr "Назад до затвердження"
+
+msgid "Back to current week"
+msgstr "Повернутися до поточного тижня"
+
+msgid "Budget Utilization"
+msgstr "Використання бюджету"
+
+msgid "Budget:"
+msgstr "Бюджет:"
+
+msgid "Calendar"
+msgstr "Календар"
+
+msgid "Cancel"
+msgstr "Скасувати"
+
+msgid "Cancel note"
+msgstr "Скасувати примітку"
+
+msgid "Cancel rejection"
+msgstr "Скасувати відхилення"
+
+msgid "Clear Status"
+msgstr "Очистити статус"
+
+msgid "Clear filters"
+msgstr "Очистити фільтри"
+
+msgid "Click on any day to configure holiday status and custom descriptions."
+msgstr "Клікніть на будь-який день, щоб налаштувати статус свята та власний опис."
+
+msgid "Click on any day to toggle its status: Standard ➔ Holiday ➔ Short Day ➔ Free Monday"
+msgstr "Натисніть на будь-який день, щоб змінити його статус: Звичайний ➔ Свято ➔ Скорочений ➔ Вільний понеділок"
+
+msgid "Close"
+msgstr "Закрити"
+
+msgid "Close dialog"
+msgstr "Закрити вікно"
+
+msgid "Close mobile menu"
+msgstr "Закрити мобільне меню"
+
+msgid "Closed"
+msgstr "Закрито"
+
+msgid "Commercial"
+msgstr "Комерційний"
+
+msgid "Commercial:"
+msgstr "Комерційний:"
+
+msgid "Company Calendar"
+msgstr "Календар компанії"
+
+msgid "Company Calendars"
+msgstr "Календарі компанії"
+
+msgid "Confirm Rejection"
+msgstr "Підтвердити відхилення"
+
+msgid "Confirm timesheet rejection"
+msgstr "Підтвердити відхилення табеля"
+
+msgid "Connected Account"
+msgstr "Підключений обліковий запис"
+
+msgid "Connecting to Project Web App and fetching timesheets... Please wait."
+msgstr "Підключення до Project Web App та отримання табелів... Будь ласка, зачекайте."
+
+msgid "Created At"
+msgstr "Створено о"
+
+msgid "Current Week"
+msgstr "Поточний тиждень"
+
+msgid "Daily Totals:"
+msgstr "Всього за день:"
+
+msgid "Day Type"
+msgstr "Тип дня"
+
+msgid "Deadline:"
+msgstr "Дедлайн:"
+
+msgid "December"
+msgstr "Грудень"
+
+msgid "Description / Holiday Name"
+msgstr "Опис / Назва свята"
+
+msgid "Description / Reason"
+msgstr "Опис / Причина"
+
+msgid "Disconnect"
+msgstr "Відключити"
+
+msgid "Disconnected Microsoft 365 account."
+msgstr "Відключено обліковий запис Microsoft 365."
+
+msgid "Double-click to add/edit work details"
+msgstr "Подвійний клік для додавання/редагування деталей роботи"
+
+msgid "Draft"
+msgstr "Чернетка"
+
+msgid "E.g., Designed 3D model for the main deck..."
+msgstr "Наприклад: Розробка 3D-моделі головної палуби..."
+
+msgid "Edit Calendar Day"
+msgstr "Редагувати день календаря"
+
+msgid "Email Address"
+msgstr "Електронна адреса"
+
+msgid "Email address cannot be empty."
+msgstr "Електронна адреса не може бути порожньою."
+
+msgid "Empty"
+msgstr "Порожньо"
+
+msgid "Empty week"
+msgstr "Порожній тиждень"
+
+msgid "Engineer"
+msgstr "Інженер"
+
+msgid "Engineer:"
+msgstr "Інженер:"
+
+msgid "English"
+msgstr "Англійська"
+
+msgid "Ensure your account is using a strong and secure password."
+msgstr "Переконайтеся, що ваш обліковий запис використовує надійний пароль."
+
+msgid "Enter email address"
+msgstr "Введіть електронну адресу"
+
+msgid "Enter first name"
+msgstr "Введіть ім’я"
+
+msgid "Enter last name"
+msgstr "Введіть прізвище"
+
+msgid "Error during approval: %(error)s"
+msgstr "Помилка під час затвердження: %(error)s"
+
+msgid "Excel"
+msgstr "Excel"
+
+msgid "Explain why the timesheet was rejected and what to fix..."
+msgstr "Поясніть причину відхилення та що потрібно виправити..."
+
+msgid "Export Annual Report (Excel)"
+msgstr "Експорт річного звіту (Excel)"
+
+msgid "Export Excel"
+msgstr "Експорт Excel"
+
+msgid "Export PDF"
+msgstr "Експорт PDF"
+
+msgid "Failed to complete Microsoft authentication: %(error)s"
+msgstr "Не вдалося завершити автентифікацію Microsoft: %(error)s"
+
+msgid "February"
+msgstr "Лютий"
+
+msgid "Fetch Timesheet Data"
+msgstr "Отримати дані табелів"
+
+msgid "Filter by Status"
+msgstr "Фільтр за статусом"
+
+msgid "Filter by Year"
+msgstr "Фільтр за роком"
+
+msgid "First Name"
+msgstr "Ім’я"
+
+msgid "Fr"
+msgstr "Пт"
+
+msgid "Free Monday"
+msgstr "Вільний понеділок"
+
+msgid "Future Planning"
+msgstr "Майбутнє планування"
+
+msgid "General Information"
+msgstr "Загальна інформація"
+
+msgid "Go to Weekly Timesheet"
+msgstr "Перейти до тижневого табеля"
+
+msgid "Has Description"
+msgstr "Має опис"
+
+msgid "Hide task %(title)s"
+msgstr "Приховати завдання %(title)s"
+
+msgid "Hide task %(title)s for current week"
+msgstr "Приховати завдання %(title)s на поточний тиждень"
+
+msgid "Hide this task for the current week"
+msgstr "Приховати це завдання на поточний тиждень"
+
+msgid "Historical Archive"
+msgstr "Історичний архів"
+
+msgid "History"
+msgstr "Історія"
+
+msgid "Holiday"
+msgstr "Свято"
+
+msgid "Hours Logged (%(year)s)"
+msgstr "Списано годин (%(year)s)"
+
+msgid "Import PWA"
+msgstr "Імпорт PWA"
+
+msgid "Import error: %(error)s"
+msgstr "Помилка імпорту: %(error)s"
+
+msgid "Import for %(user)s successfully approved! All data transferred to main database."
+msgstr "Імпорт для %(user)s успішно затверджено! Усі дані перенесено до основної бази даних."
+
+msgid "Import from MS Project"
+msgstr "Імпорт з MS Project"
+
+msgid "Inactive"
+msgstr "Неактивний"
+
+msgid "Integral Project Performance (Commercial & Internal)"
+msgstr "Інтегральні показники проєктів (комерційні та внутрішні)"
+
+msgid "Internal"
+msgstr "Внутрішній"
+
+msgid "Internal / Pet Project"
+msgstr "Внутрішній / Власний проєкт"
+
+msgid "Invalid OAuth state parameter. Please try again."
+msgstr "Недійсний параметр стану OAuth. Будь ласка, спробуйте ще раз."
+
+msgid "January"
+msgstr "Січень"
+
+msgid "Joined:"
+msgstr "Приєднався:"
+
+msgid "July"
+msgstr "Липень"
+
+msgid "June"
+msgstr "Червень"
+
+msgid "Language"
+msgstr "Мова"
+
+msgid "Last Name"
+msgstr "Прізвище"
+
+msgid "Last login:"
+msgstr "Останній вхід:"
+
+msgid "List of all customized working schedule days, official holidays, and days off."
+msgstr "Список усіх налаштованих робочих днів, офіційних свят та вихідних."
+
+msgid "Log details for your activity."
+msgstr "Запишіть деталі вашої діяльності."
+
+msgid "Log out of system"
+msgstr "Вийти з системи"
+
+msgid "Log out of your account"
+msgstr "Вийти зі свого облікового запису"
+
+msgid "Login"
+msgstr "Вхід"
+
+msgid "Logout"
+msgstr "Вихід"
+
+msgid "Manage your account information, security credentials, and past timesheet submissions."
+msgstr "Керуйте інформацією облікового запису, безпекою та історією поданих табелів."
+
+msgid "Manager's Note:"
+msgstr "Примітка менеджера:"
+
+msgid "March"
+msgstr "Березень"
+
+msgid "May"
+msgstr "Травень"
+
+msgid "Microsoft authorization failed: %(error)s"
+msgstr "Авторизація Microsoft не вдалася: %(error)s"
+
+msgid "Microsoft session expired. Please reconnect your account."
+msgstr "Сесія Microsoft закінчилася. Будь ласка, перепідключіть свій обліковий запис."
+
+msgid "Mo"
+msgstr "Пн"
+
+msgid "My Timesheet"
+msgstr "Мій табель"
+
+msgid "Navigation"
+msgstr "Навігація"
+
+msgid "New password"
+msgstr "Новий пароль"
+
+msgid "New password confirmation"
+msgstr "Підтвердження нового пароля"
+
+msgid "Next Week"
+msgstr "Наступний тиждень"
+
+msgid "Next Year"
+msgstr "Наступний рік"
+
+msgid "No active projects currently assigned."
+msgstr "Наразі немає призначених активних проєктів."
+
+msgid "No active projects or logged hours found for %(year)s."
+msgstr "Для %(year)s року не знайдено активних проєктів або списаних годин."
+
+msgid "No authorization code received from Microsoft."
+msgstr "Не отримано код авторизації від Microsoft."
+
+msgid "No commercial or non-commercial"
+msgstr "Немає комерційних або некомерційних"
+
+msgid "No description provided"
+msgstr "Опис відсутній"
+
+msgid "No email configured"
+msgstr "Електронну адресу не налаштовано"
+
+msgid "No hours logged."
+msgstr "Годин не списано."
+
+msgid "No special days configured for"
+msgstr "Немає налаштованих спеціальних днів для"
+
+msgid "No time reporting data found for year %(year)s."
+msgstr "Не знайдено даних про робочий час за %(year)s рік."
+
+msgid "No timesheet submissions match the selected filters."
+msgstr "Жоден поданий табель не відповідає вибраним фільтрам."
+
+msgid "No timesheets found matching the selected criteria."
+msgstr "Не знайдено табелів за вказаними критеріями."
+
+msgid "No timesheets pending your approval."
+msgstr "Немає табелів, що очікують вашого затвердження."
+
+msgid "Non-Commercial:"
+msgstr "Некомерційний:"
+
+msgid "Note: Free Monday can only be selected for Mondays."
+msgstr "Примітка: Вільний понеділок можна встановити лише для понеділків."
+
+msgid "November"
+msgstr "Листопад"
+
+msgid "OAuth 2.0 Modern Authentication"
+msgstr "Сучасна автентифікація OAuth 2.0"
+
+msgid "October"
+msgstr "Жовтень"
+
+msgid "Old password"
+msgstr "Старий пароль"
+
+msgid "Open"
+msgstr "Відкрити"
+
+msgid "Open main menu"
+msgstr "Відкрити головне меню"
+
+msgid "Open mobile menu"
+msgstr "Відкрити мобільне меню"
+
+msgid "Optional description shown to employees in calendar tooltips and the special days list."
+msgstr "Необов'язковий опис, що відображається співробітникам у підказках календаря та списку спеціальних днів."
+
+msgid "Optional description shown to employees in tooltips and the special days list."
+msgstr "Необов'язковий опис, що відображається співробітникам у підказках та списку спеціальних днів."
+
+msgid "Overview of company holidays, short days, and special weekends."
+msgstr "Огляд святкових днів, скорочених робочих днів та особливих вихідних."
+
+msgid "PDF"
+msgstr "PDF"
+
+msgid "PWA timesheets and project line items will be extracted for this calendar year."
+msgstr "Табелі PWA та проєктні задачі будуть витягнуті за цей календарний рік."
+
+msgid "Password"
+msgstr "Пароль"
+
+msgid "Password changed successfully."
+msgstr "Пароль успішно змінено."
+
+msgid "Pending Imports"
+msgstr "Очікують імпорту"
+
+msgid "Period"
+msgstr "Період"
+
+msgid "Personal Information"
+msgstr "Особиста інформація"
+
+msgid "Please review the logged hours carefully before approving."
+msgstr "Будь ласка, уважно перевірте списані години перед затвердженням."
+
+msgid "Please review the notes, make the necessary corrections to your logged hours, and submit again for approval."
+msgstr "Будь ласка, перегляньте зауваження, внесіть необхідні виправлення до відпрацьованих годин і надішліть знову на затвердження."
+
+msgid "Previous Week"
+msgstr "Попередній тиждень"
+
+msgid "Previous Year"
+msgstr "Попередній рік"
+
+msgid "Profile"
+msgstr "Профіль"
+
+msgid "Profile details updated successfully! 💾"
+msgstr "Дані профілю успішно оновлено! 💾"
+
+msgid "Profile updated successfully."
+msgstr "Профіль успішно оновлено."
+
+msgid "Progress Board"
+msgstr "Дошка прогресу"
+
+msgid "Progress Tracker"
+msgstr "Трекер прогресу"
+
+msgid "Project"
+msgstr "Проєкт"
+
+msgid "Project / Task"
+msgstr "Проєкт / Завдання"
+
+msgid "Project Manager"
+msgstr "Керівник проєкту"
+
+msgid "Project Name"
+msgstr "Назва проєкту"
+
+msgid "Project Timeline"
+msgstr "Графік проєкту"
+
+msgid "Projects"
+msgstr "Проєкти"
+
+msgid "Projects You Manage"
+msgstr "Проєкти під вашим керуванням"
+
+msgid "Provide feedback for <strong>%(user)s</strong> (Week %(week)s, %(year)s):"
+msgstr "Залиште відгук для <strong>%(user)s</strong> (Тиждень %(week)s, %(year)s):"
+
+msgid "Quick Actions"
+msgstr "Швидкі дії"
+
+msgid "Recall to Draft"
+msgstr "Відкликати в чернетку"
+
+msgid "Reject"
+msgstr "Відхилити"
+
+msgid "Reject & Return"
+msgstr "Відхилити та повернути"
+
+msgid "Reject Timesheet"
+msgstr "Відхилити табель"
+
+msgid "Rejected"
+msgstr "Відхилено"
+
+msgid "Rejection comment"
+msgstr "Коментар відхилення"
+
+msgid "Returned for revision:"
+msgstr "Повернуто на доопрацювання:"
+
+msgid "Returned to Draft"
+msgstr "Повернуто в чернетку"
+
+msgid "Review Pending Timesheets"
+msgstr "Переглянути табелі на затвердження"
+
+msgid "Review and approve timesheets submitted by your team."
+msgstr "Перевіряйте та затверджуйте табелі, подані вашою командою."
+
+msgid "Reviewed By / Feedback"
+msgstr "Перевірив / Коментар"
+
+msgid "Sa"
+msgstr "Сб"
+
+msgid "Save Changes"
+msgstr "Зберегти зміни"
+
+msgid "Save Draft"
+msgstr "Зберегти чернетку"
+
+msgid "Save Note"
+msgstr "Зберегти примітку"
+
+msgid "Saving changes..."
+msgstr "Збереження змін..."
+
+msgid "Secured by Microsoft Entra ID (OAuth 2.0). Password-free integration."
+msgstr "Захищено Microsoft Entra ID (OAuth 2.0). Безпарольна інтеграція."
+
+msgid "Security"
+msgstr "Безпека"
+
+msgid "Security & Password"
+msgstr "Безпека та пароль"
+
+msgid "September"
+msgstr "Вересень"
+
+msgid "Short Day (7 hours)"
+msgstr "Скорочений день (7 годин)"
+
+msgid "Short Day (7h)"
+msgstr "Скорочений день (7г)"
+
+msgid "Sign in"
+msgstr "Увійти"
+
+msgid "Sign in to your account"
+msgstr "Увійдіть у свій обліковий запис"
+
+msgid "Sign in with Microsoft 365"
+msgstr "Увійти через Microsoft 365"
+
+msgid "Skip to main content"
+msgstr "Перейти до основного вмісту"
+
+msgid "Special Days & Company Holidays"
+msgstr "Спеціальні дні та свята компанії"
+
+msgid "Spent:"
+msgstr "Списано:"
+
+msgid "Standard (8h)"
+msgstr "Звичайний (8г)"
+
+msgid "Standard Day"
+msgstr "Звичайний день"
+
+msgid "Standard Weekend"
+msgstr "Звичайний вихідний"
+
+msgid "Start:"
+msgstr "Старт:"
+
+msgid "Status"
+msgstr "Статус"
+
+msgid "Su"
+msgstr "Нд"
+
+msgid "Submit for Approval"
+msgstr "Подати на затвердження"
+
+msgid "Submitted"
+msgstr "Подано"
+
+msgid "Submitted for Approval"
+msgstr "Подано на затвердження"
+
+msgid "Successfully connected your Microsoft 365 account!"
+msgstr "Успішно підключено ваш обліковий запис Microsoft 365!"
+
+msgid "Successfully loaded %(count)d projects. Please map their project types."
+msgstr "Успішно завантажено %(count)d проєктів. Будь ласка, вкажіть їхні типи."
+
+msgid "Synchronize your timesheets and historical projects directly via secure Microsoft OAuth 2.0."
+msgstr "Синхронізуйте ваші табелі та минулі проєкти напряму через безпечний Microsoft OAuth 2.0."
+
+msgid "Target Year"
+msgstr "Цільовий рік"
+
+msgid "Task"
+msgstr "Завдання"
+
+msgid "Tasks"
+msgstr "Завдання"
+
+msgid "Team Approvals"
+msgstr "Затвердження команди"
+
+msgid "Team Members"
+msgstr "Учасники команди"
+
+msgid "Th"
+msgstr "Чт"
+
+msgid "The company follows the standard working calendar for this year."
+msgstr "Компанія дотримується стандартного робочого календаря на цей рік."
+
+msgid "The import batch has been sent to the manager for approval!"
+msgstr "Пакет імпорту успішно надіслано менеджеру на затвердження!"
+
+msgid "The year <strong>%(year)s</strong> has not started yet. Progress tracking will become available when the year begins."
+msgstr "Рік <strong>%(year)s</strong> ще не розпочався. Відстеження прогресу стане доступним після початку року."
+
+msgid "The year <strong>%(year)s</strong> is closed. Integral progress is only tracked for active current projects. Below you can find the final statistics and logged hours for individual tasks."
+msgstr "Рік <strong>%(year)s</strong> закрито. Інтегральний прогрес відстежується лише для активних поточних проєктів. Нижче наведено підсумкову статистику та списані години за окремими завданнями."
+
+msgid "This email address is already in use by another account."
+msgstr "Ця електронна адреса вже використовується іншим обліковим записом."
+
+msgid "This project is closed"
+msgstr "Цей проєкт закрито"
+
+msgid "Time Allocation"
+msgstr "Розподіл часу"
+
+msgid "Time Log"
+msgstr "Запис часу"
+
+msgid "Time Logs"
+msgstr "Записи часу"
+
+msgid "Timesheet Approved: Week %(week)02d, %(year)d"
+msgstr "Табель затверджено: тиждень %(week)02d, %(year)d"
+
+msgid "Timesheet Details"
+msgstr "Деталі табеля"
+
+msgid "Timesheet History"
+msgstr "Історія табелів"
+
+msgid "Timesheet ID:"
+msgstr "ID табеля:"
+
+msgid "Timesheet Matrix & Statistics"
+msgstr "Матриця табелів та статистика"
+
+msgid "Timesheet Rejected: Week %(week)02d, %(year)d"
+msgstr "Табель відхилено: тиждень %(week)02d, %(year)d"
+
+msgid "Timesheet Returned with Feedback"
+msgstr "Табель повернуто з коментарем"
+
+msgid "Timesheet Submission History"
+msgstr "Історія подання табелів"
+
+msgid "Timesheet Submitted for Approval: Week %(week)02d, %(year)d"
+msgstr "Табель подано на затвердження: тиждень %(week)02d, %(year)d"
+
+msgid "Timesheets"
+msgstr "Табелі"
+
+msgid "To protect your credentials, this application never asks for or stores your Microsoft account password. Click below to authenticate directly via Microsoft Entra ID."
+msgstr "Для захисту ваших облікових даних цей застосунок ніколи не запитує і не зберігає ваш пароль Microsoft. Натисніть нижче для прямої автентифікації через Microsoft Entra ID."
+
+msgid "Today"
+msgstr "Сьогодні"
+
+msgid "Total"
+msgstr "Всього"
+
+msgid "Total Hours"
+msgstr "Усього годин"
+
+msgid "Total Spent:"
+msgstr "Всього списано:"
+
+msgid "Total hours this week:"
+msgstr "Всього годин за тиждень:"
+
+msgid "Track budget utilization and deadlines for your active tasks."
+msgstr "Відстежуйте використання бюджету та дедлайни за активними завданнями."
+
+msgid "Tu"
+msgstr "Вт"
+
+msgid "Ukrainian"
+msgstr "Українська"
+
+msgid "Update Password"
+msgstr "Оновити пароль"
+
+msgid "Update your personal details and contact email address."
+msgstr "Оновіть свої особисті дані та контактну адресу електронної пошти."
+
+msgid "Updated At"
+msgstr "Оновлено о"
+
+msgid "Updating password..."
+msgstr "Оновлення паролю..."
+
+msgid "Used for timesheet notifications, approval updates, and system alerts."
+msgstr "Використовується для сповіщень про табелі, затвердження та системні сповіщення."
+
+msgid "User Profile & Settings"
+msgstr "Профіль користувача та налаштування"
+
+msgid "Username"
+msgstr "Ім’я користувача"
+
+msgid "Username and password do not match. Please try again."
+msgstr "Ім’я користувача або пароль неправильні. Спробуйте ще раз."
+
+msgid "View Details"
+msgstr "Переглянути деталі"
+
+msgid "View profile and settings"
+msgstr "Переглянути профіль та налаштування"
+
+msgid "View, track approval status, and export your past weekly reports."
+msgstr "Переглядайте, відстежуйте статус та експортуйте ваші минулі тижневі звіти."
+
+msgid "We"
+msgstr "Ср"
+
+msgid "Week"
+msgstr "Тиждень"
+
+msgid "Week %(week)02d"
+msgstr "Тиждень %(week)02d"
+
+msgid "Week & Year"
+msgstr "Тиждень і рік"
+
+msgid "Week:"
+msgstr "Тиждень:"
+
+msgid "Weekend"
+msgstr "Вихідний"
+
+msgid "Weekly Dashboard"
+msgstr "Тижневий дашборд"
+
+msgid "Weekly Timesheet"
+msgstr "Тижневий табель"
+
+msgid "Weekly Timesheets"
+msgstr "Тижневі табелі"
+
+msgid "Weeks Matrix"
+msgstr "Матриця тижнів"
+
+msgid "Work Details"
+msgstr "Деталі роботи"
+
+msgid "Work details comment"
+msgstr "Коментар до виконаної роботи"
+
+msgid "Year:"
+msgstr "Рік:"
+
+msgid "Yearly Matrix"
+msgstr "Річна матриця"
+
+msgid "Yearly Overview"
+msgstr "Річний огляд"
+
+msgid "Yearly Progress Board"
+msgstr "Річна дошка прогресу"
+
+msgid "Yearly time allocation doughnut chart"
+msgstr "Кругова діаграма розподілу часу за рік"
+
+msgid "You don't have any assigned tasks for this week."
+msgstr "У вас немає призначених завдань на цей тиждень."
+
+msgid "Your password has been changed successfully! 🔒"
+msgstr "Ваш пароль успішно змінено! 🔒"
+
+msgid "click to change day type"
+msgstr "натисніть, щоб змінити тип дня"
+
+msgid "click to edit"
+msgstr "клікніть для редагування"
+
+msgid "configured"
+msgstr "налаштовано"
+
+msgid "e.g. New Year's Day, Constitution Day, Corporate Picnic"
+msgstr "напр., Новий рік, День Конституції, Корпоративний пікнік"
+
+msgid "hours logged yet."
+msgstr "годин, записаних на цей час."
+
+msgid "members"
+msgstr "учасників"
+
+msgid "✅ Timesheet #%(id)s for <strong>%(user)s</strong> approved!"
+msgstr "✅ Табель #%(id)s користувача <strong>%(user)s</strong> затверджено!"
+
+msgid "❌ Timesheet #%(id)s for <strong>%(user)s</strong> returned to draft with feedback."
+msgstr "❌ Табель #%(id)s користувача <strong>%(user)s</strong> повернуто в чернетку з коментарем."

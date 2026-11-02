@@ -1,0 +1,57 @@
+{% load i18n %}<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% trans "Timesheet Submitted" %}</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 24px; color: #1e293b;">
+    <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <div style="background-color: #4f46e5; padding: 20px 24px; text-align: left;">
+            <h1 style="color: #ffffff; margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.025em;">MyProjectsManager</h1>
+        </div>
+        <div style="padding: 24px;">
+            <h2 style="margin-top: 0; margin-bottom: 16px; font-size: 18px; font-weight: 600; color: #0f172a;">
+                {% trans "Timesheet Submitted for Review" %}
+            </h2>
+            <p style="margin-top: 0; margin-bottom: 16px; font-size: 14px; line-height: 1.6; color: #334155;">
+                {% blocktrans with name=manager_name %}Hello {{ name }},{% endblocktrans %}
+            </p>
+            <p style="margin-top: 0; margin-bottom: 20px; font-size: 14px; line-height: 1.6; color: #334155;">
+                {% blocktrans with employee=employee_name week=week_number year=year %}<strong>{{ employee }}</strong> has submitted their timesheet for <strong>Week {{ week }}, {{ year }}</strong> for your review and approval.{% endblocktrans %}
+            </p>
+
+            <div style="background-color: #f1f5f9; border-radius: 6px; padding: 16px; margin-bottom: 24px;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                    <tr>
+                        <td style="padding: 6px 0; color: #64748b; font-weight: 500;">{% trans "Employee" %}:</td>
+                        <td style="padding: 6px 0; color: #0f172a; font-weight: 600; text-align: right;">{{ employee_name }}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 6px 0; color: #64748b; font-weight: 500;">{% trans "Period" %}:</td>
+                        <td style="padding: 6px 0; color: #0f172a; font-weight: 600; text-align: right;">{{ period_start }} – {{ period_end }} (W{{ week_number }})</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 6px 0; color: #64748b; font-weight: 500;">{% trans "Total Logged Hours" %}:</td>
+                        <td style="padding: 6px 0; color: #4f46e5; font-weight: 700; text-align: right;">{{ total_hours }} h</td>
+                    </tr>
+                </table>
+            </div>
+
+            <div style="text-align: center; margin-bottom: 24px;">
+                <a href="{{ approvals_url }}" style="display: inline-block; background-color: #4f46e5; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 600; font-size: 14px;">
+                    {% trans "Review Timesheet" %}
+                </a>
+            </div>
+
+            <p style="margin: 0; font-size: 12px; line-height: 1.5; color: #64748b;">
+                {% trans "If the button above does not work, copy and paste this link into your browser:" %}<br>
+                <a href="{{ approvals_url }}" style="color: #4f46e5; word-break: break-all;">{{ approvals_url }}</a>
+            </p>
+        </div>
+        <div style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 16px 24px; text-align: center; font-size: 12px; color: #94a3b8;">
+            {% trans "This is an automated notification from MyProjectsManager. Please do not reply directly to this email." %}
+        </div>
+    </div>
+</body>
+</html>
