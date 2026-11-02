@@ -193,7 +193,34 @@ else:
 
 # Logging configuration
 LOGS_DIR = BASE_DIR / 'logs'
-LOGS_DIR.mkdir(parents=True, exist_ok=True)
+try:
+    LOGS_DIR.mkdir(parents=True, exist_ok=True)
+except (PermissionError, OSError):
+    pass
+
+LOGGING_HANDLERS = {
+    'console': {
+        'class': 'logging.StreamHandler',
+        'formatter': 'simple',
+    },
+}
+LOG_ENABLED_HANDLERS = ['console']
+
+try:
+    _test_log = LOGS_DIR / '.write_test'
+    _test_log.touch()
+    _test_log.unlink()
+    LOGGING_HANDLERS['file'] = {
+        'class': 'logging.handlers.RotatingFileHandler',
+        'maxBytes': 5 * 1024 * 1024,
+        'backupCount': 5,
+        'filename': LOGS_DIR / ('test.log' if 'pytest' in sys.modules or 'test' in sys.argv else 'app.log'),
+        'formatter': 'verbose',
+        'encoding': 'utf-8',
+    }
+    LOG_ENABLED_HANDLERS.append('file')
+except (PermissionError, OSError):
+    pass
 
 LOGGING = {
     'version': 1,
@@ -208,28 +235,15 @@ LOGGING = {
             'style': '{',
         },
     },
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-            'formatter': 'simple',
-        },
-        'file': {
-            'class': 'logging.handlers.RotatingFileHandler',
-            'maxBytes': 5 * 1024 * 1024,
-            'backupCount': 5,
-            'filename': LOGS_DIR / ('test.log' if 'pytest' in sys.modules or 'test' in sys.argv else 'app.log'),
-            'formatter': 'verbose',
-            'encoding': 'utf-8',
-        },
-    },
+    'handlers': LOGGING_HANDLERS,
     'loggers': {
         'work_time_reporter': {
-            'handlers': ['console', 'file'],
+            'handlers': LOG_ENABLED_HANDLERS,
             'level': 'INFO',
             'propagate': False,
         },
         'msproject_import': {
-            'handlers': ['console', 'file'],
+            'handlers': LOG_ENABLED_HANDLERS,
             'level': 'INFO',
             'propagate': False,
         },
