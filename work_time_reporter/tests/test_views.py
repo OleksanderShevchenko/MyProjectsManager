@@ -8,7 +8,6 @@ from work_time_reporter.models import (
     CompanyCalendar,
     TimeLog,
     WeeklyTimesheet,
-    Project,
     Task,
 )
 
