@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 import dj_database_url
 import os
+import sys
 from pathlib import Path
 from dotenv import load_dotenv
 from django.utils.translation import gettext_lazy as _
@@ -213,8 +214,10 @@ LOGGING = {
             'formatter': 'simple',
         },
         'file': {
-            'class': 'logging.FileHandler',
-            'filename': LOGS_DIR / 'app.log',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'maxBytes': 5 * 1024 * 1024,
+            'backupCount': 5,
+            'filename': LOGS_DIR / ('test.log' if 'pytest' in sys.modules or 'test' in sys.argv else 'app.log'),
             'formatter': 'verbose',
             'encoding': 'utf-8',
         },
@@ -248,5 +251,21 @@ PWA_URL = os.environ.get('PWA_URL', '')
 AZURE_CLIENT_ID = os.environ.get('AZURE_CLIENT_ID', '')
 AZURE_CLIENT_SECRET = os.environ.get('AZURE_CLIENT_SECRET', '')
 AZURE_TENANT_ID = os.environ.get('AZURE_TENANT_ID', 'common')
+
+# Sentry error tracking & performance monitoring
+SENTRY_DSN = os.environ.get('SENTRY_DSN', '')
+if SENTRY_DSN:
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.django import DjangoIntegration
+
+        sentry_sdk.init(
+            dsn=SENTRY_DSN,
+            integrations=[DjangoIntegration()],
+            traces_sample_rate=float(os.environ.get('SENTRY_TRACES_SAMPLE_RATE', '0.1')),
+            send_default_pii=False,
+        )
+    except ImportError:
+        pass
 
 
