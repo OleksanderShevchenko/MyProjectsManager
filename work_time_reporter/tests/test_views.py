@@ -522,3 +522,31 @@ class TestTaskPoolViews:
         assert not draft_timesheet.additional_tasks.filter(id=task.id).exists()
 
 
+@pytest.mark.django_db
+class TestHealthCheckView:
+    def test_health_check_healthy(self, client):
+        """Health check returns 200 and healthy status when database is operational."""
+        url = reverse('work_time_reporter:health_check')
+        response = client.get(url)
+        assert response.status_code == 200
+        data = response.json()
+        assert data['status'] == 'healthy'
+        assert data['database'] == 'connected'
+
+    def test_health_check_unhealthy(self, client, monkeypatch):
+        """Health check returns 503 and error message when database connection fails."""
+        from django.db import connection
+
+        def mock_cursor():
+            raise Exception("Database connection failure")
+
+        monkeypatch.setattr(connection, "cursor", mock_cursor)
+
+        url = reverse('work_time_reporter:health_check')
+        response = client.get(url)
+        assert response.status_code == 503
+        data = response.json()
+        assert data['status'] == 'unhealthy'
+        assert 'Database connection failure' in data['error']
+
+
