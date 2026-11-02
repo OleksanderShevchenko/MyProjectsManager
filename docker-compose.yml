@@ -13,7 +13,6 @@ services:
       - DB_SOURCE=local
     volumes:
       - static_files:/app/staticfiles
-      - logs:/app/logs
     expose:
       - "8000"
 
@@ -49,4 +48,3 @@ services:
 volumes:
   postgres_data:
   static_files:
-  logs:
