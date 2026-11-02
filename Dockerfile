@@ -48,14 +48,15 @@ COPY --from=builder --chown=appuser:appgroup /app/.venv /app/.venv
 # Copy application source code
 COPY --chown=appuser:appgroup . .
 
-# Ensure entrypoint script is executable
-RUN chmod +x /app/docker-entrypoint.sh
-
-# Collect static files into STATIC_ROOT using a dummy secret key for build
-RUN SECRET_KEY=dummy-build-key-for-collectstatic python manage.py collectstatic --noinput
+# Ensure entrypoint script is executable and app directory is owned by appuser
+RUN chmod +x /app/docker-entrypoint.sh && \
+    chown -R appuser:appgroup /app
 
 # Switch to non-root user
 USER appuser
+
+# Collect static files into STATIC_ROOT as appuser
+RUN SECRET_KEY=dummy-build-key-for-collectstatic python manage.py collectstatic --noinput
 
 EXPOSE 8000
 
