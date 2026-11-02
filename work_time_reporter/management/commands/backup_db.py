@@ -43,7 +43,8 @@ class Command(BaseCommand):
 
         db_config = settings.DATABASES['default']
         engine = db_config.get('ENGINE', '')
-        dbname = db_config.get('NAME', 'database')
+        raw_name = str(db_config.get('NAME') or 'database')
+        dbname = "".join(c if c.isalnum() or c in ('-', '_') else '_' for c in Path(raw_name).stem)
 
         timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
         ext = 'sql.gz' if compress else 'sql'
