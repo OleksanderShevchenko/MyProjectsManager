@@ -152,18 +152,18 @@
                         <tr class="task-row hover:bg-gray-50 transition-colors group">
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 bg-white sticky left-0 z-10 shadow-[1px_0_0_0_#e5e7eb] pl-10">
                                 <div class="flex justify-between items-center group/task">
-                                    <span title="{{ row.task.title }}" class="truncate max-w-[250px] text-gray-600 flex items-center">
-                                        <span class="text-gray-400 mr-1">└</span>
+                                    <span title="{{ row.task.title }}" class="min-w-0 flex-1 text-gray-600 flex items-center mr-2">
+                                        <span class="text-gray-400 mr-1 shrink-0">└</span>
                                         <span class="truncate">{{ row.task.title }}</span>
                                         {% if row.is_additional %}
-                                            <span class="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200" title="{% trans 'Manually added from pool' %}">{% trans "Pool" %}</span>
+                                            <span class="ml-1.5 shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200" title="{% trans 'Manually added from pool' %}">{% trans "Pool" %}</span>
                                         {% endif %}
                                         {% if row.is_exhausted %}
-                                            <span class="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200" title="{% trans 'Budget exhausted / Overbudget' %}">⚠️ {% trans "Exhausted" %}</span>
+                                            <span class="ml-1.5 shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200" title="{% trans 'Budget exhausted / Overbudget' %}">⚠️ {% trans "Exhausted" %}</span>
                                         {% endif %}
                                     </span>
 
-                                    <div class="flex items-center">
+                                    <div class="flex items-center shrink-0">
                                         {% if row.is_additional and timesheet.status == 'DRAFT' and row.row_total == 0 %}
                                         <form hx-post="{% url 'work_time_reporter:remove_task_from_timesheet' timesheet.id %}"
                                               method="POST"
