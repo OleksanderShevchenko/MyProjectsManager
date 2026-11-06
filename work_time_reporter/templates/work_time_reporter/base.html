@@ -34,8 +34,11 @@
                         {% if request.user.is_active_manager %}
                             <a href="{% url 'work_time_reporter:team_approvals' %}" class="text-white bg-indigo-800 hover:bg-indigo-700 px-3 py-2 rounded-md text-sm font-medium transition shadow-inner">{% trans "Team Approvals" %}</a>
                         {% endif %}
-                        {% if user.is_staff %}
+                        {% if user.is_staff or user.is_superuser %}
                             <a href="{% url 'msproject_import:pending' %}" class="text-indigo-100 hover:bg-indigo-800 px-3 py-2 rounded-md text-sm font-medium">{% trans "Pending Imports" %}</a>
+                            <a href="{% url 'admin:index' %}" class="text-indigo-100 hover:bg-indigo-800 px-3 py-2 rounded-md text-sm font-medium flex items-center">
+                                <span class="mr-1">⚙️</span> {% trans "Admin" %}
+                            </a>
                         {% endif %}
                     </div>
                 </div>
@@ -106,8 +109,9 @@
             {% if request.user.is_active_manager %}
                 <a href="{% url 'work_time_reporter:team_approvals' %}" class="text-white bg-indigo-800 hover:bg-indigo-700 block px-3 py-2 rounded-md text-base font-medium shadow-inner">{% trans "Team Approvals" %}</a>
             {% endif %}
-            {% if user.is_staff %}
+            {% if user.is_staff or user.is_superuser %}
                 <a href="{% url 'msproject_import:pending' %}" class="text-indigo-100 hover:bg-indigo-800 block px-3 py-2 rounded-md text-base font-medium">{% trans "Pending Imports" %}</a>
+                <a href="{% url 'admin:index' %}" class="text-indigo-100 hover:bg-indigo-800 block px-3 py-2 rounded-md text-base font-medium">⚙️ {% trans "Admin Panel" %}</a>
             {% endif %}
 
             <div class="pt-4 pb-2 border-t border-indigo-800 mt-3 space-y-3">
