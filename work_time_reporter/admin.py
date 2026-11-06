@@ -134,7 +134,8 @@ class TaskAdmin(admin.ModelAdmin):
         if budget > 0:
             pct = (spent / budget) * 100
             color = "#dc2626" if spent > budget else "#16a34a"
-            return format_html('<span style="color: {}; font-weight: 600;">{:.1f}h ({:.0f}%)</span>', color, spent, pct)
+            badge = f"{spent:.1f}h ({pct:.0f}%)"
+            return format_html('<span style="color: {}; font-weight: 600;">{}</span>', color, badge)
         return f"{spent:.1f}h"
 
     class Media:
@@ -167,7 +168,8 @@ class TimeLogAdmin(admin.ModelAdmin):
         url = reverse('admin:work_time_reporter_weeklytimesheet_change', args=[obj.timesheet_id])
         status = obj.timesheet.status
         status_color = "#16a34a" if status == "APPROVED" else ("#d97706" if status == "SUBMITTED" else "#6b7280")
+        week_label = f"{obj.timesheet.year} W{obj.timesheet.week_number:02d}"
         return format_html(
-            '<a href="{}">{} W{:02d} <span style="color: {}; font-weight: 600;">[{}]</span></a>',
-            url, obj.timesheet.year, obj.timesheet.week_number, status_color, status
+            '<a href="{}">{} <span style="color: {}; font-weight: 600;">[{}]</span></a>',
+            url, week_label, status_color, status
         )

@@ -549,3 +549,30 @@ class TestHealthCheckView:
         assert 'Database connection failure' in data['error']
 
 
+@pytest.mark.django_db
+class TestAdminViews:
+    def test_admin_changelists_render_without_error(
+        self, admin_client, active_project, active_task, draft_timesheet, engineer_user
+    ):
+        """Verify all custom admin changelist views render with 200 OK without formatting errors."""
+        TimeLog.objects.create(
+            user=engineer_user,
+            task=active_task,
+            timesheet=draft_timesheet,
+            date=datetime.date(2026, 8, 24),
+            hours=8.0,
+            comment="Admin test log"
+        )
+
+        for changelist in [
+            'admin:work_time_reporter_project_changelist',
+            'admin:work_time_reporter_task_changelist',
+            'admin:work_time_reporter_timelog_changelist',
+            'admin:work_time_reporter_weeklytimesheet_changelist',
+        ]:
+            url = reverse(changelist)
+            response = admin_client.get(url)
+            assert response.status_code == 200
+
+
+
