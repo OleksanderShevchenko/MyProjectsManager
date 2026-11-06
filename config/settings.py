@@ -96,24 +96,35 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASE_URL = os.getenv('DATABASE_URL')
 DB_SOURCE = os.getenv('DB_SOURCE')
 
-DATABASES = {'default': {
-    # for postgres from docker
-    'ENGINE': 'django.db.backends.postgresql',
-    'NAME': os.environ.get('POSTGRES_DB'),
-    'USER': os.environ.get('POSTGRES_USER'),
-    'PASSWORD': os.environ.get('POSTGRES_PASSWORD'),
-    'HOST': os.environ.get('POSTGRES_HOST'),
-    'PORT': os.environ.get('POSTGRES_PORT'),
-}
-} if DB_SOURCE == 'local' else {
+if 'pytest' in sys.modules or 'test' in sys.argv:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': ':memory:',
+        }
+    }
+elif DB_SOURCE == 'local':
+    DATABASES = {
+        'default': {
+            # for postgres from docker
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.environ.get('POSTGRES_DB'),
+            'USER': os.environ.get('POSTGRES_USER'),
+            'PASSWORD': os.environ.get('POSTGRES_PASSWORD'),
+            'HOST': os.environ.get('POSTGRES_HOST'),
+            'PORT': os.environ.get('POSTGRES_PORT'),
+        }
+    }
+else:
     # for postgres from cloud
-    'default': dj_database_url.config(
-        default=DATABASE_URL,
-        conn_max_age=600,
-        conn_health_checks=True,
-        ssl_require=True,
-    )
-}
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=DATABASE_URL,
+            conn_max_age=600,
+            conn_health_checks=True,
+            ssl_require=True,
+        )
+    }
 
 
 # Password validation

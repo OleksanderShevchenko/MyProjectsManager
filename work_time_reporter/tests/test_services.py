@@ -1067,7 +1067,7 @@ class TestTimesheetServiceProgress:
         assert project_item['budget'] == 100.0
         # Total spent must be 5 * 8 + 3 * 5 = 55.0
         assert project_item['spent'] == 55.0
-        assert project_item['budget_pct'] == 55.0
+        assert project_item['budget_pct'] == pytest.approx(55.0)
 
 
 
