@@ -1029,3 +1029,45 @@ class TestTaskPoolAndExhaustion:
         assert "logged hours" in res_blocked['message']
 
 
+@pytest.mark.django_db
+class TestTimesheetServiceProgress:
+    def test_get_progress_data_budget_not_multiplied_by_timelogs(
+        self, engineer_user, active_project, draft_timesheet
+    ):
+        """Verify project budget in integral progress is not multiplied by the number of timelogs."""
+        t1 = Task.objects.create(
+            title="Task Alpha", project=active_project, budget_hours=60, deadline=datetime.date(2026, 12, 31)
+        )
+        t1.assignees.add(engineer_user)
+
+        t2 = Task.objects.create(
+            title="Task Beta", project=active_project, budget_hours=40, deadline=datetime.date(2026, 12, 31)
+        )
+        t2.assignees.add(engineer_user)
+
+        # Create multiple timelogs across multiple dates
+        for day in range(10, 15):
+            TimeLog.objects.create(
+                user=engineer_user, task=t1, timesheet=draft_timesheet,
+                date=datetime.date(2026, 8, day), hours=8.0
+            )
+
+        for day in range(15, 18):
+            TimeLog.objects.create(
+                user=engineer_user, task=t2, timesheet=draft_timesheet,
+                date=datetime.date(2026, 8, day), hours=5.0
+            )
+
+        integral_data, _ = TimesheetService.get_progress_data(engineer_user, 2026, 'current')
+
+        project_item = next((item for item in integral_data if item['project'].id == active_project.id), None)
+        assert project_item is not None
+
+        # Total budget must be exactly 60 + 40 = 100.0, NOT multiplied by 5 or 8
+        assert project_item['budget'] == 100.0
+        # Total spent must be 5 * 8 + 3 * 5 = 55.0
+        assert project_item['spent'] == 55.0
+        assert project_item['budget_pct'] == 55.0
+
+
+

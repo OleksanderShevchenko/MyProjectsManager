@@ -199,24 +199,27 @@ class TimesheetService:
         today = datetime.date.today()
         # 2. Only calculate Integral Progress if we are looking at the CURRENT year
         if year_status == 'current':
-            project_summary = Project.objects.filter(
+            projects = Project.objects.filter(
                 Q(is_active=True) & ~Q(project_type='ADMINISTRATIVE') & Q(tasks__assignees=user)
-            ).annotate(
-                total_budget=Sum('tasks__budget_hours', filter=Q(tasks__assignees=user)),
-                total_spent=Sum('tasks__time_logs__hours',
-                                filter=Q(tasks__time_logs__date__year=year, tasks__time_logs__user=user)),
-                project_start=Min('tasks__time_logs__date',
-                                  filter=Q(tasks__time_logs__date__year=year, tasks__time_logs__user=user)),
-                project_deadline=Max('tasks__deadline', filter=Q(tasks__assignees=user))
-            ).filter(total_spent__gt=0).distinct().order_by('project_type', 'name')
+            ).distinct().order_by('project_type', 'name')
 
-            for proj in project_summary:
-                spent = float(proj.total_spent or 0)
-                budget = float(proj.total_budget or 0)
+            for proj in projects:
+                user_tasks = Task.objects.filter(project=proj, assignees=user)
+                budget = float(user_tasks.aggregate(total=Sum('budget_hours'))['total'] or 0.0)
+
+                spent_data = TimeLog.objects.filter(
+                    task__in=user_tasks, user=user, date__year=year
+                ).aggregate(
+                    total=Sum('hours'),
+                    first_date=Min('date')
+                )
+                spent = float(spent_data['total'] or 0.0)
+                if spent == 0:
+                    continue
 
                 budget_pct = min(100, (spent / budget * 100)) if budget > 0 else 0
-                start = proj.project_start or datetime.date(year, 1, 1)
-                deadline = proj.project_deadline or datetime.date(year, 12, 31)
+                start = spent_data['first_date'] or datetime.date(year, 1, 1)
+                deadline = user_tasks.aggregate(dl=Max('deadline'))['dl'] or datetime.date(year, 12, 31)
 
                 total_days = (deadline - start).days or 1
                 days_passed = (today - start).days
